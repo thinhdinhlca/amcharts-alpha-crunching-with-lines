@@ -173,7 +173,7 @@ xAxis.children.push(
 yAxis.children.unshift(
   am5.Label.new(root, {
     rotation: -90,
-    text: "Average {type} Points",
+    text: "Average ${type} Points",
     y: am5.p50,
     centerX: am5.p50
   })
