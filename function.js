@@ -75,7 +75,7 @@ xRenderer.labels.template.setAll({
 var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
   categoryField: "time",  //***
   renderer: xRenderer,
-  paddingRight: 15,
+  paddingRight: 5,
   tooltip: am5.Tooltip.new(root, {})
 }));
 
