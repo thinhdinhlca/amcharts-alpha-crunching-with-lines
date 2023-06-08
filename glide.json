@@ -18,6 +18,11 @@
       "name": "height",
       "displayName": "Height (default: 500px)",
       "type": "number"
+    },
+    {
+      "name": "type",
+      "displayName": "Type of chart",
+      "type": "string"
     }
   ],
   "result": {
