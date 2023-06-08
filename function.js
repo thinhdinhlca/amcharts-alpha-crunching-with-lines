@@ -1,11 +1,12 @@
 // https://www.amcharts.com/demos/line-with-changing-color
 
-window.function = function (data, width, height) {
+window.function = function (data, width, height, type) {
 
   // data
   data = data.value ?? "";
   width = width.value ?? 100;
   height = height.value ?? 500;
+  type = type.value ?? "SPX";
  
   let ht = `<!DOCTYPE html>
 <html>
@@ -172,7 +173,7 @@ xAxis.children.push(
 yAxis.children.unshift(
   am5.Label.new(root, {
     rotation: -90,
-    text: "Average SPX Points",
+    text: "Average {type} Points",
     y: am5.p50,
     centerX: am5.p50
   })
