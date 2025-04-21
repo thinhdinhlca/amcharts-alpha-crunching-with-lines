@@ -6,12 +6,12 @@
   "params": [
     {
       "name": "data",
-      "displayName": "Primary Timeline data (a JSON string)",
+      "displayName": "Primary Timeline data (JSON string)",
       "type": "string"
     },
     {
       "name": "overlayDataJson",
-      "displayName": "Overlay Lines Data (a JSON string)",
+      "displayName": "Overlay Lines Data (JSON string)",
       "type": "string"
     },
     {
