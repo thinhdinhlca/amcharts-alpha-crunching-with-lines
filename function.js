@@ -1,10 +1,12 @@
 window.function = function (data, overlayDataJson, width, height, type) {
-data = data.value ?? "";
-overlayDataJson = overlayDataJson.value ?? null;
-width = width.value ?? 100;
-height = height.value ?? 500;
-type = type.value ?? "SPX";
-let ht = `<!DOCTYPE html>
+
+  data = data.value ?? "";
+  overlayDataJson = overlayDataJson.value ?? null;
+  width = width.value ?? 100;
+  height = height.value ?? 500;
+  type = type.value ?? "SPX";
+
+  let ht = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -15,12 +17,14 @@ let ht = `<!DOCTYPE html>
   </head>
   <body>
   <div id="chartdiv"></div>
+
   <style>
     #chartdiv {
       width: ${width}%;
       height: ${height}px;
     }
   </style>
+
 <script>
 var root = am5.Root.new("chartdiv");
 
@@ -219,11 +223,10 @@ chart.set("scrollbarX", am5.Scrollbar.new(root, {
 }));
 
 chart.appear(1000, 100);
-
-</script>
-  </body>
+@@ -230,6 +230,6 @@
 </html>`;
-let enc = encodeURIComponent(ht);
-let uri = data:text/html;charset=utf-8,${enc};
-return uri;
+
+  let enc = encodeURIComponent(ht);
+  let uri = `data:text/html;charset=utf-8,${enc}`;
+  return uri;
 }
