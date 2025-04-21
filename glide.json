@@ -1,12 +1,17 @@
 {
   "kind": "column",
-  "name": "amCharts chart: Line with Changing Color",
-  "description": "",
-  "author": "Gustavo A. Valero P. - LowCode Agency",
+  "name": "amCharts chart: Line with Overlays",
+  "description": "Displays a primary weekly forecast with optional historical overlays.",
+  "author": "Thinh Dinh",
   "params": [
     {
       "name": "data",
-      "displayName": "Timeline data",
+      "displayName": "Primary Timeline data (JSON string)",
+      "type": "string"
+    },
+    {
+      "name": "overlayDataJson",
+      "displayName": "Overlay Lines Data (JSON string)",
       "type": "string"
     },
     {
@@ -21,7 +26,7 @@
     },
     {
       "name": "type",
-      "displayName": "Type of chart",
+      "displayName": "Ticker Symbol (e.g., SPX)",
       "type": "string"
     }
   ],
