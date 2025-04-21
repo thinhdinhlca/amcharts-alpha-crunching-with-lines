@@ -12,7 +12,7 @@ window.function = function (data, overlayDataJson, width, height, type) {
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Glide Yes-Code Chart</title>
+    <title>amCharts Alpha Crunching with Lines</title>
      <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
