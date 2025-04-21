@@ -233,5 +233,3 @@ chart.appear(1000, 100);
   let uri = `data:text/html;charset=utf-8,${enc}`;
   return uri;
 }
-
-Investigate why this function doesn't draw the lines
