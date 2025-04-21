@@ -1,6 +1,6 @@
 window.function = function (data, overlayDataJson, width, height, type) {
 
-  // Safely get input values or defaults from the outer function's scope
+  // Safely get input values or defaults
   let dataStringValue = data.value ?? '[]';
   let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
   let chartWidth = width.value ?? 100;
@@ -12,7 +12,7 @@ window.function = function (data, overlayDataJson, width, height, type) {
 <html>
   <head>
     <meta charset="utf-8">
-    <title>amCharts Alpha Crunching with Lines</title>
+    <title>Glide Yes-Code Chart</title>
      <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
@@ -30,6 +30,8 @@ window.function = function (data, overlayDataJson, width, height, type) {
 <script>
 am5.ready(function() { // Use am5.ready wrapper
 
+  console.log("am5.ready executed."); // Initial log
+
   // --- Root and Theme ---
   var root = am5.Root.new("chartdiv");
   root.setThemes([
@@ -38,184 +40,199 @@ am5.ready(function() { // Use am5.ready wrapper
 
   // *** Define colorSet ***
   var colorSet = am5.ColorSet.new(root, {});
+  console.log("colorSet defined.");
 
   // --- Data Parsing ---
-  // These constants hold the STRING content passed from the outer function
   const primaryDataString = ${JSON.stringify(dataStringValue)};
-  const overlayString = ${JSON.stringify(overlayDataJsonStringValue)}; // Embedded overlay string
+  const overlayString = ${JSON.stringify(overlayDataJsonStringValue)};
+  console.log("Data strings embedded.");
+  // console.log("Primary Data String:", primaryDataString); // Optional: Log full data strings
+  // console.log("Overlay String:", overlayString);
 
-  var primaryData = []; // Default value
+  var primaryData = [];
   try {
     primaryData = JSON.parse(primaryDataString);
     if (!Array.isArray(primaryData)) {
         console.error("Primary data is not an array:", primaryData);
         primaryData = [];
     }
+    console.log("Primary data parsed successfully.", primaryData.length, "items");
   } catch(e) {
     console.error("Error parsing primary data JSON:", e, "\\nData String:", primaryDataString);
   }
 
-  var parsedOverlayData = null; // Default value
+  var parsedOverlayData = null;
   try {
-      // *** THIS IS THE CORRECTED LINE: Use overlayString ***
       if (overlayString && overlayString.trim() !== "" && overlayString.trim() !== "{}") {
-          parsedOverlayData = JSON.parse(overlayString); // Parse the string from THIS scope
-          // Validate the parsed result
+          parsedOverlayData = JSON.parse(overlayString);
           if (typeof parsedOverlayData !== 'object' || parsedOverlayData === null || Array.isArray(parsedOverlayData)) {
               console.error("Parsed overlay data is not a valid object:", parsedOverlayData);
-              parsedOverlayData = null; // Reset on validation failure
+              parsedOverlayData = null;
+          } else {
+              console.log("Overlay data parsed successfully.");
+              // console.log("Parsed Overlay Data:", parsedOverlayData); // Optional: Log parsed object
           }
+      } else {
+          console.log("Overlay string is empty or '{}'. No overlay data to parse.");
       }
-      // No 'else' needed, parsedOverlayData remains null if string is empty/{}
   } catch (e) {
-      // Log the string from THIS scope that failed
       console.error("Error parsing overlay JSON:", e, "\\nOverlay String:", overlayString);
-      parsedOverlayData = null; // Ensure reset on error
+      parsedOverlayData = null;
   }
 
-
   // --- Chart Setup ---
-  var chart = root.container.children.push(am5xy.XYChart.new(root, {
-    panX: true, panY: true, wheelX: "panX", wheelY: "zoomX",
-    layout: root.verticalLayout, pinchZoomX: true
-  }));
+  var chart = root.container.children.push(am5xy.XYChart.new(root, { /* ... config ... */ }));
+  console.log("Chart initialized.");
 
   // --- Cursor ---
   var cursor = chart.set("cursor", am5xy.XYCursor.new(root, { behavior: "none" }));
   cursor.lineY.set("visible", false);
+  console.log("Cursor set.");
 
   // --- Prepare Combined Data for Category Axis ---
-  // Use the PARSED variables (primaryData, parsedOverlayData)
   let allDataForAxis = [...primaryData];
   let hasValidOverlayData = false;
+  console.log("Starting axis data preparation.");
 
   if (parsedOverlayData && typeof parsedOverlayData === 'object') {
-      const overlayKeys = Object.keys(parsedOverlayData);
-      for (const weekKey of overlayKeys) { // weekKey defined for this block
-          let weekData = parsedOverlayData[weekKey];
-          if (weekData && Array.isArray(weekData) && weekData.length > 0) {
-               let validItems = weekData.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time'));
-               if (validItems.length > 0) {
-                   allDataForAxis.push(...validItems);
-                   hasValidOverlayData = true;
-               } else {
-                    console.warn(\`Overlay data for key "${weekKey}" has items but none have a 'time' property.\`);
-               }
+      console.log("Processing parsed overlay data for axis categories.");
+      try { // Add try-catch around this loop too
+          const overlayKeysForAxis = Object.keys(parsedOverlayData);
+          console.log("Axis Loop: Found keys:", overlayKeysForAxis);
+          for (const key of overlayKeysForAxis) { // Use 'key' to avoid potential naming conflict
+              console.log("Axis Loop: Processing key:", key);
+              let weekData = parsedOverlayData[key];
+              if (weekData && Array.isArray(weekData) && weekData.length > 0) {
+                   let validItems = weekData.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time'));
+                   if (validItems.length > 0) {
+                       allDataForAxis.push(...validItems);
+                       hasValidOverlayData = true; // Set flag here, indicates we *should* have overlays later
+                       console.log("Axis Loop: Added", validItems.length, "valid items for key:", key);
+                   } else {
+                        console.warn(\`Axis Loop: Overlay data for key "${key}" has items but none have a 'time' property.\`);
+                   }
+              }
           }
-      } // End of for...of block
-  } // End check for parsedOverlayData object
+          console.log("Axis Loop: Finished processing keys.");
+      } catch (axisLoopError) {
+           console.error("!!!! ERROR DURING AXIS DATA PREPARATION LOOP !!!!", axisLoopError);
+      }
+  } else {
+      console.log("No valid parsed overlay data object to process for axis categories.");
+  }
+  console.log("Axis data preparation complete. Total items for axis:", allDataForAxis.length, "Has valid overlay data flag:", hasValidOverlayData);
+
 
   // Extract unique time categories
-  let uniqueTimes = [...new Set(allDataForAxis
-      .map(item => item ? item.time : null)
-      .filter(time => time !== undefined && time !== null && time !== '')
-  )];
+  let uniqueTimes = [...new Set(allDataForAxis.map(item => item ? item.time : null).filter(time => time !== undefined && time !== null && time !== ''))];
   let xAxisData = uniqueTimes.map(time => ({ time: time }));
+  console.log("Unique time categories extracted:", uniqueTimes.length);
 
   // --- X Axis ---
-  var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 70 });
-  xRenderer.grid.template.set("location", 0.5);
-  xRenderer.labels.template.setAll({ fontSize: 8, location: 0.5, rotation: -90, multiLocation: 0.5, centerX: am5.p50 });
-  var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-    categoryField: "time", renderer: xRenderer,
-    tooltip: am5.Tooltip.new(root, { labelText: "{categoryX}" })
-  }));
+  var xRenderer = am5xy.AxisRendererX.new(root, { /* ... */ });
+  var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { /* ... */ }));
   if (xAxisData.length > 0) { xAxis.data.setAll(xAxisData); }
   else { console.warn("No valid category data found for X-Axis."); }
+  console.log("X Axis configured.");
 
   // --- Y Axis ---
-  var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
-    maxPrecision: 2, renderer: am5xy.AxisRendererY.new(root, {})
-  }));
+  var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { /* ... */ }));
+  console.log("Y Axis configured.");
 
   // --- Area Series ---
-  var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
-    name: "Selected Week", xAxis: xAxis, yAxis: yAxis,
-    valueYField: "value", categoryXField: "time",
-    tooltip: am5.Tooltip.new(root, { labelText: "Selected: {valueY.formatNumber('#.00')}", dy:-5 })
-  }));
-  areaSeries.strokes.template.setAll({ templateField: "strokeSettings", strokeWidth: 2 });
-  areaSeries.strokes.template.set("stroke", areaSeries.get("stroke"));
-  areaSeries.fills.template.setAll({ visible: true, fillOpacity: 0.5, templateField: "fillSettings" });
-  areaSeries.fills.template.set("fill", areaSeries.get("fill"));
-  areaSeries.bullets.push(() => {
-    return am5.Bullet.new(root, {
-      sprite: am5.Circle.new(root, {
-        templateField: "bulletSettings", radius: 3,
-        fill: areaSeries.get("fill"), stroke: areaSeries.get("stroke")
-      })
-    });
-  });
-  areaSeries.data.setAll(primaryData); // Use parsed primary data
+  var areaSeries = chart.series.push(am5xy.LineSeries.new(root, { /* ... */ }));
+  // ... area series config ...
+  areaSeries.data.setAll(primaryData);
   areaSeries.appear(1000);
-
+  console.log("Area series configured.");
 
   // --- Column Series ---
-  var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-    name: "Selected Week (Interval)", xAxis: xAxis, yAxis: yAxis,
-    valueYField: "value2", categoryXField: "time",
-    fill: am5.color("#023020"), stroke: am5.color("#023020"),
-    tooltip: am5.Tooltip.new(root, { labelText: "Interval: {valueY.formatNumber('#.00')}", dy:-10 })
-  }));
-  columnSeries.columns.template.adapters.add("fill", (fill, target) => {
-    return (target.dataItem && target.dataItem.get("valueY") < 0) ? am5.color("#8B0000") : fill;
-  });
-  columnSeries.columns.template.adapters.add("stroke", (stroke, target) => {
-     return (target.dataItem && target.dataItem.get("valueY") < 0) ? am5.color("#8B0000") : stroke;
-  });
-  columnSeries.columns.template.setAll({ strokeWidth: 1, cornerRadiusTL: 3, cornerRadiusTR: 3, maxWidth: 10 });
-  columnSeries.data.setAll(primaryData); // Use parsed primary data
+  var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, { /* ... */ }));
+  // ... column series config ...
+  columnSeries.data.setAll(primaryData);
   columnSeries.appear(1000);
   columnSeries.hide(0);
-
+  console.log("Column series configured.");
 
   // --- Overlay Line Series ---
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C" };
   let legendData = [areaSeries, columnSeries];
+  console.log("--- Starting Overlay Series Processing ---"); // Log 1
+  console.log("Checking condition: hasValidOverlayData && parsedOverlayData && typeof parsedOverlayData === 'object'"); // Log 2
+  console.log("Values:", hasValidOverlayData, !!parsedOverlayData, typeof parsedOverlayData); // Log 3
 
-  // Use the PARSED parsedOverlayData variable
+  // *** USE THE FLAG 'hasValidOverlayData' set during axis prep ***
   if (hasValidOverlayData && parsedOverlayData && typeof parsedOverlayData === 'object') {
-      const overlayKeys = Object.keys(parsedOverlayData);
-      for (const weekKey of overlayKeys) { // weekKey defined for this block
-          let weekData = parsedOverlayData[weekKey];
-          // Validate data before creating series
-          if (weekData && Array.isArray(weekData) && weekData.length > 0 && weekData.every(item => item && typeof item === 'object' && item.hasOwnProperty('time') && item.hasOwnProperty('value'))) {
-              var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-                  name: weekKey,
-                  xAxis: xAxis, yAxis: yAxis,
-                  valueYField: "value", categoryXField: "time",
-                  stroke: am5.color(overlayColors[weekKey] || root.interfaceColors.get("grid")),
-                  tooltip: am5.Tooltip.new(root, { labelText: \`{name}: {valueY.formatNumber('#.00')}\` }),
-                  connect: false
-              }));
-              lineSeries.data.setAll(weekData); // Set specific week data
-              lineSeries.appear(1000);
-              legendData.push(lineSeries);
-          } else {
-               console.warn(\`Skipping overlay series "${weekKey}" due to invalid data format or missing 'time'/'value'.\`);
-          }
-      } // End of for...of block
-  } // End check for parsedOverlayData object
+      console.log("Condition met, entering overlay series creation block."); // Log 4
+      try { // Wrap the entire series creation loop block
+          const overlayKeys = Object.keys(parsedOverlayData);
+          console.log("Series Loop: Found keys:", overlayKeys); // Log 5
+
+          for (const weekKey of overlayKeys) { // weekKey defined for this block
+              // *** LOG IMMEDIATELY INSIDE LOOP ***
+              console.log("Series Loop: Processing weekKey:", weekKey); // Log 6
+
+              let weekData = parsedOverlayData[weekKey];
+              // Log 7 (Optional but helpful):
+              // console.log("Series Loop: Data for key:", weekKey, weekData ? \`(${weekData.length} items)\` : 'null/undefined');
+
+              console.log("Series Loop: Validating data for key:", weekKey); // Log 8
+              if (weekData && Array.isArray(weekData) && weekData.length > 0 && weekData.every(item => item && typeof item === 'object' && item.hasOwnProperty('time') && item.hasOwnProperty('value'))) {
+                   console.log("Series Loop: Data VALID for key:", weekKey, ". Creating series..."); // Log 9
+                   var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
+                      // Using weekKey here should be safe if Log 6 executed without error for this key
+                      name: weekKey,
+                      xAxis: xAxis, yAxis: yAxis,
+                      valueYField: "value", categoryXField: "time",
+                      stroke: am5.color(overlayColors[weekKey] || root.interfaceColors.get("grid")),
+                      tooltip: am5.Tooltip.new(root, { labelText: \`{name}: {valueY.formatNumber('#.00')}\` }),
+                      connect: false
+                   }));
+                   console.log("Series Loop: Series object created for key:", weekKey); // Log 10
+                   lineSeries.data.setAll(weekData);
+                   console.log("Series Loop: Data set for key:", weekKey); // Log 11
+                   lineSeries.appear(1000);
+                   legendData.push(lineSeries);
+                   console.log("Series Loop: Series configured and added to legend for key:", weekKey); // Log 12
+              } else {
+                   // Using weekKey here should be safe if Log 6 executed without error for this key
+                   console.warn(\`Series Loop: Skipping overlay series "${weekKey}" due to invalid data format or missing properties.\`); // Log 13
+              }
+              console.log("Series Loop: Finished iteration for key:", weekKey); // Log 14
+          } // End of for...of block
+          console.log("Series Loop: Finished processing all overlay keys."); // Log 15
+      } catch (seriesLoopError) {
+          // Log any unexpected error during the loop itself
+          console.error("!!!! ERROR INSIDE OVERLAY SERIES CREATION LOOP !!!!", seriesLoopError); // Log 16
+      }
+  } else {
+      console.log("Condition NOT met, skipping overlay series creation block."); // Log 17
+  }
+  console.log("--- Finished Overlay Series Processing ---"); // Log 18
 
   // --- Legend (Conditional) ---
-  if (legendData.length > 2) { // Only show legend if overlays were added
-       var legend = chart.set("legend", am5.Legend.new(root, {
-           centerX: am5.percent(50), x: am5.percent(50),
-           layout: root.horizontalLayout, marginTop: 15, marginBottom: 15
-       }));
+  console.log("Checking legend condition. Legend data length:", legendData.length);
+  if (legendData.length > 2) {
+       var legend = chart.set("legend", am5.Legend.new(root, { /* ... */ }));
        legend.itemContainers.template.set("toggleOnClick", true);
        legend.data.setAll(legendData);
+       console.log("Legend created and populated.");
+  } else {
+       console.log("Legend not created (less than 3 series).");
   }
 
   // --- Axis Labels ---
-  xAxis.children.push( am5.Label.new(root, { text: "Time of Day", x: am5.percent(50), centerX: am5.percent(50), paddingTop: 5 }) );
-  yAxis.children.unshift( am5.Label.new(root, { rotation: -90, text: \`Average \${chartTypeLabel} Points\`, y: am5.percent(50), centerX: am5.percent(50) }) );
+  xAxis.children.push( am5.Label.new(root, { /* ... */ }) );
+  yAxis.children.unshift( am5.Label.new(root, { /* ... */ }) );
+  console.log("Axis labels added.");
 
   // --- Scrollbar ---
-  chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 10 }));
+  chart.set("scrollbarX", am5.Scrollbar.new(root, { /* ... */ }));
+  console.log("Scrollbar set.");
 
   // --- Final Appear Animation ---
   chart.appear(1000, 100);
+  console.log("Final chart appear initiated.");
 
 }); // end am5.ready()
 </script>
