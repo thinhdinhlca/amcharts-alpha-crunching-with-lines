@@ -1,12 +1,10 @@
 window.function = function (data, overlayDataJson, width, height, type) {
-
-  data = data.value ?? "";
-  overlayDataJson = overlayDataJson.value ?? null;
-  width = width.value ?? 100;
-  height = height.value ?? 500;
-  type = type.value ?? "SPX";
-
-  let ht = `<!DOCTYPE html>
+data = data.value ?? "";
+overlayDataJson = overlayDataJson.value ?? null;
+width = width.value ?? 100;
+height = height.value ?? 500;
+type = type.value ?? "SPX";
+let ht = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
@@ -17,14 +15,12 @@ window.function = function (data, overlayDataJson, width, height, type) {
   </head>
   <body>
   <div id="chartdiv"></div>
-
   <style>
     #chartdiv {
       width: ${width}%;
       height: ${height}px;
     }
   </style>
-
 <script>
 var root = am5.Root.new("chartdiv");
 
@@ -49,46 +45,6 @@ cursor.lineY.set("visible", false);
 var colorSet = am5.ColorSet.new(root, {colors: ["#FF0000", "#00008B", "#006400", "#FFDF00", "#FF8C00","#06038D"]});
 
 var data = [ ${data} ];
-let overlayData = null;
-
-let overallMin = Infinity;
-let overallMax = -Infinity;
-
-data.forEach(item => {
-  if (item.value != null && item.value < overallMin) overallMin = item.value;
-  if (item.value != null && item.value > overallMax) overallMax = item.value;
-  if (item.value3 != null && item.value3 < overallMin) overallMin = item.value3;
-  if (item.value3 != null && item.value3 > overallMax) overallMax = item.value3;
-});
-
-if (overlayDataJson && overlayDataJson.trim() !== "" && overlayDataJson.trim() !== "{}") {
-    try {
-        overlayData = JSON.parse(overlayDataJson);
-        Object.keys(overlayData).forEach(weekKey => {
-            let weekData = overlayData[weekKey];
-            if (weekData && weekData.length > 0) {
-                weekData.forEach(item => {
-                    if (item.value != null && item.value < overallMin) overallMin = item.value;
-                    if (item.value != null && item.value > overallMax) overallMax = item.value;
-                });
-            }
-        });
-    } catch (e) {
-        console.error("Error parsing or processing overlay JSON for range calculation:", e);
-        overlayData = null;
-    }
-}
-
-let yAxisMin = overallMin;
-let yAxisMax = overallMax;
-if (isFinite(overallMin) && isFinite(overallMax)) {
-    let padding = (overallMax - overallMin) * 0.05;
-    yAxisMin = overallMin - padding;
-    yAxisMax = overallMax + padding;
-} else {
-    yAxisMin = 0;
-    yAxisMax = 100;
-}
 
 var xRenderer = am5xy.AxisRendererX.new(root, {});
 xRenderer.grid.template.set("location", 0.5);
@@ -111,9 +67,7 @@ xAxis.data.setAll(data);
 
 var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
   maxPrecision: 0,
-  renderer: am5xy.AxisRendererY.new(root, {}),
-  min: yAxisMin,
-  max: yAxisMax,
+  renderer: am5xy.AxisRendererY.new(root, {})
 }));
 
 var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
@@ -155,7 +109,7 @@ var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
   name: "Selected Week (Interval)",
   xAxis: xAxis,
   yAxis: yAxis,
-  valueYField: "value3",
+  valueYField: "value2",
   categoryXField: "time",
   fill: am5.color("#023020"),
   stroke: am5.color("#023020"),
@@ -202,38 +156,43 @@ const overlayColors = {
     "3 Weeks Ago": "#DC143C"
 };
 
-if (overlayData) {
-    let overlayKeys = Object.keys(overlayData);
+if (overlayDataJson && overlayDataJson.trim() !== "" && overlayDataJson.trim() !== "{}") {
+    try {
+        let overlayData = JSON.parse(overlayDataJson);
+        let overlayKeys = Object.keys(overlayData);
 
-    overlayKeys.forEach(function(weekKey) {
-        let weekData = overlayData[weekKey];
+        overlayKeys.forEach(function(weekKey) {
+            let weekData = overlayData[weekKey];
 
-        if (weekData && weekData.length > 0) {
-            var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-                name: weekKey,
-                xAxis: xAxis,
-                yAxis: yAxis,
-                valueYField: "value",
-                categoryXField: "time",
-                stroke: am5.color(overlayColors[weekKey] || "#888888"),
-                strokeWidth: 2,
-                tooltip: am5.Tooltip.new(root, {
-                    labelText: "{name}: {valueY.formatNumber('#.00')}"
-                })
-            }));
+            if (weekData && weekData.length > 0) {
+                var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
+                    name: weekKey,
+                    xAxis: xAxis,
+                    yAxis: yAxis,
+                    valueYField: "value",
+                    categoryXField: "time",
+                    stroke: am5.color(overlayColors[weekKey] || "#888888"),
+                    strokeWidth: 2,
+                    tooltip: am5.Tooltip.new(root, {
+                        labelText: "{name}: {valueY.formatNumber('#.00')}"
+                    })
+                }));
 
-            lineSeries.data.setAll(weekData);
-            lineSeries.appear(1000);
-        }
-    });
+                lineSeries.data.setAll(weekData);
+                lineSeries.appear(1000);
+            }
+        });
 
-     chart.set("legend", am5.Legend.new(root, {
-         x: am5.percent(50),
-         centerX: am5.percent(50),
-         layout: root.horizontalLayout,
-         marginBottom: 15
-     }));
+         chart.set("legend", am5.Legend.new(root, {
+             x: am5.percent(50),
+             centerX: am5.percent(50),
+             layout: root.horizontalLayout,
+             marginBottom: 15
+         }));
 
+    } catch (e) {
+        console.error("Error parsing or processing overlay JSON:", e);
+    }
 }
 
 xAxis.children.push(
@@ -241,8 +200,7 @@ xAxis.children.push(
     text: "Time of Day",
     x: am5.p50,
     centerX: am5.percent(50),
-    centerY: true,
-    paddingTop: 10
+    centerY: true
   })
 );
 
@@ -263,11 +221,9 @@ chart.set("scrollbarX", am5.Scrollbar.new(root, {
 chart.appear(1000, 100);
 
 </script>
-
   </body>
 </html>`;
-
-  let enc = encodeURIComponent(ht);
-  let uri = `data:text/html;charset=utf-8,${enc}`;
-  return uri;
+let enc = encodeURIComponent(ht);
+let uri = data:text/html;charset=utf-8,${enc};
+return uri;
 }
