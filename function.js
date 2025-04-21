@@ -223,10 +223,15 @@ chart.set("scrollbarX", am5.Scrollbar.new(root, {
 }));
 
 chart.appear(1000, 100);
-@@ -230,6 +230,6 @@
+
+</script>
+
+  </body>
 </html>`;
 
   let enc = encodeURIComponent(ht);
   let uri = `data:text/html;charset=utf-8,${enc}`;
   return uri;
 }
+
+Investigate why this function doesn't draw the lines
