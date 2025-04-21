@@ -1,16 +1,20 @@
-window.function = function (data, overlayDataJson, width, height, type) {
+// https://www.amcharts.com/demos/line-with-changing-color
 
+window.function = function (data, width, height, type) {
+
+  // data
   data = data.value ?? "";
-  overlayDataJson = overlayDataJson.value ?? null;
   width = width.value ?? 100;
   height = height.value ?? 500;
   type = type.value ?? "SPX";
-
+ 
   let ht = `<!DOCTYPE html>
 <html>
   <head>
     <meta charset="utf-8">
     <title>Glide Yes-Code</title>
+	
+     <!-- Resources (HTML) -->
      <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
      <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
@@ -18,20 +22,25 @@ window.function = function (data, overlayDataJson, width, height, type) {
   <body>
   <div id="chartdiv"></div>
 
+  <!-- Styles (CSS) -->
   <style>
     #chartdiv {
       width: ${width}%;
       height: ${height}px;
     }
   </style>
-
+  
 <script>
+<!-- Chart code (JavaScript)  -->
+// Create root element
 var root = am5.Root.new("chartdiv");
 
+// Set themes
 root.setThemes([
   am5themes_Animated.new(root)
 ]);
 
+// Create chart
 var chart = root.container.children.push(am5xy.XYChart.new(root, {
   panX: true,
   panY: true,
@@ -41,6 +50,7 @@ var chart = root.container.children.push(am5xy.XYChart.new(root, {
   pinchZoomX:true
 }));
 
+// Add cursor
 var cursor = chart.set("cursor", am5xy.XYCursor.new(root, {
   behavior: "none"
 }));
@@ -48,8 +58,10 @@ cursor.lineY.set("visible", false);
 
 var colorSet = am5.ColorSet.new(root, {colors: ["#FF0000", "#00008B", "#006400", "#FFDF00", "#FF8C00","#06038D"]});
 
+//   *** The data ***
 var data = [ ${data} ];
 
+// Create axes
 var xRenderer = am5xy.AxisRendererX.new(root, {});
 xRenderer.grid.template.set("location", 0.5);
 xRenderer.labels.template.setAll({
@@ -61,7 +73,7 @@ xRenderer.labels.template.setAll({
 });
 
 var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-  categoryField: "time",
+  categoryField: "time",  //***
   renderer: xRenderer,
   paddingRight: 5,
   tooltip: am5.Tooltip.new(root, {})
@@ -75,13 +87,12 @@ var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
 }));
 
 var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
-  name: "Selected Week",
   xAxis: xAxis,
   yAxis: yAxis,
   valueYField: "value",
-  categoryXField: "time",
+  categoryXField: "time",     //***
   tooltip: am5.Tooltip.new(root, {
-    labelText: "{valueY.formatNumber('#.00')}",
+    labelText: "{valueY}",
     dy:-5
   })
 }));
@@ -110,7 +121,6 @@ areaSeries.data.setAll(data);
 areaSeries.appear(1000);
 
 var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-  name: "Selected Week (Interval)",
   xAxis: xAxis,
   yAxis: yAxis,
   valueYField: "value2",
@@ -118,13 +128,13 @@ var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
   fill: am5.color("#023020"),
   stroke: am5.color("#023020"),
   tooltip: am5.Tooltip.new(root, {
-    labelText: "Interval: {valueY.formatNumber('#.00')}",
+    labelText: "{valueY}",
     dy:-10
   })
 }));
 
 columnSeries.columns.template.adapters.add("fill", function(fill, target) {
-  if (target.dataItem && target.dataItem.get("valueY") < 0) {
+  if (target.dataItem.get("valueY") < 0) {
     return am5.color("#8B0000");
   }
   else {
@@ -133,7 +143,7 @@ columnSeries.columns.template.adapters.add("fill", function(fill, target) {
 });
 
 columnSeries.columns.template.adapters.add("stroke", function(stroke, target) {
-  if (target.dataItem && target.dataItem.get("valueY") < 0) {
+  if (target.dataItem.get("valueY") < 0) {
     return am5.color("#8B0000");
   }
   else {
@@ -150,54 +160,6 @@ columnSeries.columns.template.setAll({
 
 columnSeries.data.setAll(data);
 columnSeries.appear(1000);
-columnSeries.hide(0);
-
-
-const overlayColors = {
-    "This Week": "#228B22",
-    "Last Week": "#FFA500",
-    "2 Weeks Ago": "#800080",
-    "3 Weeks Ago": "#DC143C"
-};
-
-if (overlayDataJson && overlayDataJson.trim() !== "" && overlayDataJson.trim() !== "{}") {
-    try {
-        let overlayData = JSON.parse(overlayDataJson);
-        let overlayKeys = Object.keys(overlayData);
-
-        overlayKeys.forEach(function(weekKey) {
-            let weekData = overlayData[weekKey];
-
-            if (weekData && weekData.length > 0) {
-                var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-                    name: weekKey,
-                    xAxis: xAxis,
-                    yAxis: yAxis,
-                    valueYField: "value",
-                    categoryXField: "time",
-                    stroke: am5.color(overlayColors[weekKey] || "#888888"),
-                    strokeWidth: 2,
-                    tooltip: am5.Tooltip.new(root, {
-                        labelText: "{name}: {valueY.formatNumber('#.00')}"
-                    })
-                }));
-
-                lineSeries.data.setAll(weekData);
-                lineSeries.appear(1000);
-            }
-        });
-
-         chart.set("legend", am5.Legend.new(root, {
-             x: am5.percent(50),
-             centerX: am5.percent(50),
-             layout: root.horizontalLayout,
-             marginBottom: 15
-         }));
-
-    } catch (e) {
-        console.error("Error parsing or processing overlay JSON:", e);
-    }
-}
 
 xAxis.children.push(
   am5.Label.new(root, {
@@ -211,25 +173,31 @@ xAxis.children.push(
 yAxis.children.unshift(
   am5.Label.new(root, {
     rotation: -90,
-    text: \`Average \${type} Points\`,
+    text: "Average ${type} Points",
     y: am5.p50,
     centerX: am5.p50
   })
 );
 
+// Add scrollbar
+// https://www.amcharts.com/docs/v5/charts/xy-chart/scrollbars/
 chart.set("scrollbarX", am5.Scrollbar.new(root, {
   orientation: "horizontal",
   marginBottom: 20
 }));
 
+// Make stuff animate on load
+// https://www.amcharts.com/docs/v5/concepts/animations/
 chart.appear(1000, 100);
+
 
 </script>
 
+
   </body>
-</html>`;
+</html>`
 
   let enc = encodeURIComponent(ht);
-  let uri = \`data:text/html;charset=utf-8,\${enc}\`;
-  return uri;
+  let uri = `data:text/html;charset=utf-8,${enc}`
+  return uri; 
 }
