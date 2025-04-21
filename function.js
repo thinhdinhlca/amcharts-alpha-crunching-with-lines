@@ -219,7 +219,7 @@ yAxis.children.unshift(
 
 chart.set("scrollbarX", am5.Scrollbar.new(root, {
   orientation: "horizontal",
-  marginBottom: 20
+  marginBottom: 5
 }));
 
 chart.appear(1000, 100);
@@ -230,6 +230,6 @@ chart.appear(1000, 100);
 </html>`;
 
   let enc = encodeURIComponent(ht);
-  let uri = \`data:text/html;charset=utf-8,\${enc}\`;
+  let uri = `data:text/html;charset=utf-8,${enc}`;
   return uri;
 }
