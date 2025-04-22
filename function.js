@@ -1,31 +1,30 @@
 window.function = function (data, overlayDataJson, intervalName, width, height, type) { // Added intervalName parameter
-// --- Input Handling & Cleaning ---
-let dataStringValue = data.value ?? '[]';
-let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
-let intervalNameValue = intervalName.value ?? "Period"; // Default to "Period"
-let chartWidth = width.value ?? 100;
-let chartHeight = height.value ?? 550;
-let chartTypeLabel = type.value ?? "Value";
-let cleanedDataString = '[]';
-try { /* ... cleaning logic ... /
-let tempString = dataStringValue.trim();
-tempString = tempString.replace(/strokeSettings\s:\s*{[\s\S]?}\s,?/g, '');
-tempString = tempString.replace(/fillSettings\s*:\s*{[\s\S]?}\s,?/g, '');
-tempString = tempString.replace(/bulletSettings\s*:\s*{[\s\S]?}\s,?/g, '');
-tempString = tempString.replace(/,\s*(})/g, '
-1"
-2
-"
-2"
-3');
-if (tempString && !tempString.startsWith('[')) { tempString = '[' + tempString; }
-if (tempString && !tempString.endsWith(']')) { tempString = tempString + ']'; }
-if (!tempString || tempString === "[]" || tempString === "") { cleanedDataString = '[]'; }
-else { JSON.parse(tempString); cleanedDataString = tempString; console.log("DEBUG: Cleaned primary data string potentially valid JSON."); }
-} catch (cleaningError) { console.error("!!! Failed to clean primary data string !!!", cleaningError); cleanedDataString = '[]'; }
-// console.log("DEBUG: Final string for primary data:", cleanedDataString);
-// --- HTML Template ---
-let ht = `
+
+  // --- Input Handling & Cleaning ---
+  let dataStringValue = data.value ?? '[]';
+  let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
+  let intervalNameValue = intervalName.value ?? "Period"; // Default to "Period"
+  let chartWidth = width.value ?? 100;
+  let chartHeight = height.value ?? 550;
+  let chartTypeLabel = type.value ?? "Value";
+  let cleanedDataString = '[]';
+  try { /* ... cleaning logic ... */
+    let tempString = dataStringValue.trim();
+    tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
+    tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
+    tempString = tempString.replace(/bulletSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
+    tempString = tempString.replace(/,\s*(\})/g, '$1');
+    tempString = tempString.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
+    if (tempString && !tempString.startsWith('[')) { tempString = '[' + tempString; }
+    if (tempString && !tempString.endsWith(']')) { tempString = tempString + ']'; }
+     if (!tempString || tempString === "[]" || tempString === "") { cleanedDataString = '[]'; }
+     else { JSON.parse(tempString); cleanedDataString = tempString; console.log("DEBUG: Cleaned primary data string potentially valid JSON."); }
+  } catch (cleaningError) { console.error("!!! Failed to clean primary data string !!!", cleaningError); cleanedDataString = '[]'; }
+  // console.log("DEBUG: Final string for primary data:", cleanedDataString);
+
+
+  // --- HTML Template ---
+  let ht = `
 <!DOCTYPE html>
 <html>
 <head>
@@ -45,6 +44,7 @@ let ht = `
 </head>
 <body>
   <div id="chartdiv"></div>
+
 <script>
 am5.ready(function() {
 
@@ -236,10 +236,12 @@ am5.ready(function() {
 
 }); // end am5.ready()
 </script>
+
 </body>
 </html>`;
-// --- Encode and Return URI ---
-const encodedHtml = encodeURIComponent(ht);
-const dataUri = data:text/html;charset=utf-8,${encodedHtml};
-return dataUri;
+
+  // --- Encode and Return URI ---
+  const encodedHtml = encodeURIComponent(ht);
+  const dataUri = `data:text/html;charset=utf-8,${encodedHtml}`;
+  return dataUri;
 }
