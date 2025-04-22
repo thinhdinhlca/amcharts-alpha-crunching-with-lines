@@ -68,7 +68,7 @@ am5.ready(function() {
   // console.log("Root created.");
 
   // --- Data Parsing Function ---
-  // *** MODIFIED: Added valueOpen=0 to primaryData ***
+  // *** CORRECTED: Escaped quotes in console.warn ***
   function parseChartData(primaryStr, overlayStr) {
      let primaryData = [];
      let parsedOverlayData = null;
@@ -87,7 +87,7 @@ am5.ready(function() {
                  if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') {
                      delete item.value2;
                  }
-                 // *** ADD BASELINE FIELD for zero-based fill ***
+                 // Add baseline field for zero-based fill
                  item.valueOpen = 0;
                  return item;
              }).filter(item => item !== null); // Filter out invalid items
@@ -100,7 +100,7 @@ am5.ready(function() {
          primaryData = [];
      }
 
-     // Parse Overlay Data (no changes needed here)
+     // Parse Overlay Data
      try {
          if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") {
              let rawOverlay = JSON.parse(overlayStr);
@@ -116,9 +116,11 @@ am5.ready(function() {
                                  parsedOverlayData[key] = processedWeekData;
                                  validKeys++;
                              } else {
+                                 // *** CORRECTED LINE ***
                                  console.warn("Overlay data for key \"" + key + "\" had no valid items after filtering.");
                              }
                          } else {
+                              // *** CORRECTED LINE (Consistency) ***
                              console.warn("Overlay data for key \"" + key + "\" was not an array.");
                          }
                      }
@@ -166,7 +168,7 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Added openValueYField to valueAreaSeries ***
+  // Added openValueYField to valueAreaSeries
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Value Area, Value2 Bars)...");
 
@@ -179,7 +181,7 @@ am5.ready(function() {
       yAxis: yAxis,
       valueYField: "value",         // The actual data line
       categoryXField: "time",
-      openValueYField: "valueOpen", // *** Sets the baseline for the fill to 0 ***
+      openValueYField: "valueOpen", // Sets the baseline for the fill to 0
       stroke: am5.color(primaryOutlineColor), // Line color
       fill: am5.color(primaryFillColor),     // Fill color
       fillOpacity: 0.8, // Make the fill visible
@@ -235,7 +237,7 @@ am5.ready(function() {
   }
 
 
-  // --- Overlay Series Creation --- (No changes needed)
+  // --- Overlay Series Creation --- (No changes needed in functionality)
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      let overlaySeriesList = [];
      if (!overlayData) { /* console.log("No valid overlay data provided."); */ return overlaySeriesList; }
@@ -262,7 +264,7 @@ am5.ready(function() {
                })
            }));
            lineSeries.strokes.template.set("strokeWidth", 2);
-           lineSeries.data.setAll(weekData); // Overlay data doesn't need valueOpen unless you want them filled too
+           lineSeries.data.setAll(weekData);
            lineSeries.appear(1000);
            overlaySeriesList.push(lineSeries);
          }
