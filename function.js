@@ -29,6 +29,7 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
 
 
   // --- HTML Template ---
+  // **** CORRECTION IS HERE, inside the parseChartData function's console.warn lines ****
   let ht = `
 <!DOCTYPE html>
 <html>
@@ -75,7 +76,54 @@ am5.ready(function() {
 
   // --- Data Parsing Function (Keep value2 if present) ---
   function parseChartData(primaryStr, overlayStr) {
-     let primaryData = []; let parsedOverlayData = null; let hasValidOverlay = false; try { let rawPrimary = JSON.parse(primaryStr); if (Array.isArray(rawPrimary)) { primaryData = rawPrimary.map(item => { if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) { return null; } if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') { delete item.value2; } return item; }).filter(item => item !== null); console.log("Primary data parsed & filtered (kept valid value2):", primaryData.length); } else { console.warn("Parsed primary data is not an array."); } } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; } try { if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") { let rawOverlay = JSON.parse(overlayStr); if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) { parsedOverlayData = {}; let validKeys = 0; for (const key in rawOverlay) { if (Object.hasOwnProperty.call(rawOverlay, key)) { const weekDataRaw = rawOverlay[key]; if(Array.isArray(weekDataRaw)) { const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' ); if (processedWeekData.length > 0) { parsedOverlayData[key] = processedWeekData; validKeys++; } else { console.warn("Overlay data for key \\"" + key + "\\" had no valid items after filtering."); } } else { console.warn("Overlay data for key \\"" + key + "\\" was not an array."); } } } if (validKeys > 0) { hasValidOverlay = true; console.log("Overlay data parsed. Valid keys with data:", validKeys); } else { console.warn("Overlay data parsed, but no valid keys/data found."); parsedOverlayData = null; } } else { console.warn("Parsed overlay data is not a valid object."); } } else { console.log("No overlay data string provided."); } } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; } return { primaryData, parsedOverlayData, hasValidOverlay };
+     let primaryData = []; let parsedOverlayData = null; let hasValidOverlay = false;
+     try {
+         let rawPrimary = JSON.parse(primaryStr);
+         if (Array.isArray(rawPrimary)) {
+             primaryData = rawPrimary.map(item => {
+                 if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) { return null; }
+                 if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') { delete item.value2; }
+                 return item;
+             }).filter(item => item !== null);
+             console.log("Primary data parsed & filtered (kept valid value2):", primaryData.length);
+         } else { console.warn("Parsed primary data is not an array."); }
+     } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; }
+
+     try {
+         if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") {
+             let rawOverlay = JSON.parse(overlayStr);
+             if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) {
+                 parsedOverlayData = {};
+                 let validKeys = 0;
+                 for (const key in rawOverlay) {
+                     if (Object.hasOwnProperty.call(rawOverlay, key)) {
+                         const weekDataRaw = rawOverlay[key];
+                         if(Array.isArray(weekDataRaw)) {
+                             const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' );
+                             if (processedWeekData.length > 0) {
+                                 parsedOverlayData[key] = processedWeekData;
+                                 validKeys++;
+                             } else {
+                                 // *** FIXED: Use template literal for inner script's string ***
+                                 console.warn(\`Overlay data for key "\${key}" had no valid items after filtering.\`);
+                             }
+                         } else {
+                             // *** FIXED: Use template literal for inner script's string ***
+                             console.warn(\`Overlay data for key "\${key}" was not an array.\`);
+                         }
+                     }
+                 }
+                 if (validKeys > 0) {
+                     hasValidOverlay = true;
+                     console.log("Overlay data parsed. Valid keys with data:", validKeys);
+                 } else {
+                     console.warn("Overlay data parsed, but no valid keys/data found.");
+                     parsedOverlayData = null;
+                 }
+             } else { console.warn("Parsed overlay data is not a valid object."); }
+         } else { console.log("No overlay data string provided."); }
+     } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; }
+     return { primaryData, parsedOverlayData, hasValidOverlay };
    }
 
   // --- Axis Category Preparation (Using primary data IN ORDER - Unchanged) ---
@@ -142,48 +190,41 @@ am5.ready(function() {
   }
 
 
-  // --- Overlay Series Creation ---
-  // *** Tooltip uses getFillFromSprite = true, which uses the line color (from overlayColors) for the background ***
+  // --- Overlay Series Creation (Tooltip uses getFillFromSprite - Unchanged) ---
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      let overlaySeriesList = []; if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; } console.log("Creating overlay series..."); try { for (const weekKey in overlayData) { if (Object.hasOwnProperty.call(overlayData, weekKey)) { const weekData = overlayData[weekKey]; const seriesColor = colors[weekKey] || root.interfaceColors.get("grid"); console.log("Creating LineSeries for: " + weekKey); var lineSeries = chart.series.push(am5xy.LineSeries.new(root, { name: weekKey, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", stroke: am5.color(seriesColor), // Set line color connect: false, tooltip: am5.Tooltip.new(root, { getFillFromSprite: true, // <-- THIS makes tooltip background match stroke labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}" }) })); lineSeries.strokes.template.set("strokeWidth", 2); lineSeries.data.setAll(weekData); lineSeries.appear(1000); overlaySeriesList.push(lineSeries); } } } catch (e) { console.error("Error creating overlay series:", e); } console.log("Overlay series creation finished:", overlaySeriesList.length); return overlaySeriesList;
    }
 
-  // --- Legend Creation & Linking ---
-  // *** MODIFIED: Use flowLayout and maxWidth for wrapping ***
+  // --- Legend Creation & Linking (Use flowLayout and maxWidth - Unchanged) ---
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) { console.log("Skipping legend (no series)."); return null; }
 
      console.log("Creating legend for", legendSeries.length, "toggleable series...");
-     // Create a container for the legend and the hint label
      var legendContainer = chart.children.push(am5.Container.new(root, {
         width: am5.percent(100),
-        layout: root.verticalLayout, // Arrange legend and hint vertically
-        x: am5.p50, centerX: am5.p50, // Center the container
-        paddingBottom: 10 // Add some space below
+        layout: root.verticalLayout,
+        x: am5.p50, centerX: am5.p50,
+        paddingBottom: 10
      }));
 
-     // Create the legend
      var legend = legendContainer.children.push(am5.Legend.new(root, {
-         x: am5.percent(50), centerX: am5.percent(50), // Center legend within container
-         layout: root.flowLayout, // *** CHANGED: Use flow layout for wrapping ***
-         maxWidth: am5.percent(90), // *** ADDED: Limit width to e.g., 90% to force wrap ***
+         x: am5.percent(50), centerX: am5.percent(50),
+         layout: root.flowLayout, // Use flow layout for wrapping
+         maxWidth: am5.percent(90), // Limit width to force wrap
          marginTop: 5,
-         marginBottom: 5 // Space between legend and hint
+         marginBottom: 5
      }));
 
-     // Add hint label below legend
      legendContainer.children.push(am5.Label.new(root, {
          text: "(Click legend items to toggle visibility)",
          fontSize: "0.75em",
-         fill: am5.color(0x888888), // Grey color for hint
-         x: am5.p50, centerX: am5.p50 // Center hint text
+         fill: am5.color(0x888888),
+         x: am5.p50, centerX: am5.p50
      }));
 
-     // Set data for the legend
      legend.data.setAll(legendSeries);
 
-     // Add event listener AFTER data is set for synchronized toggle
      legend.itemContainers.template.events.on("click", function(ev) {
         if (ev.target.dataItem?.dataContext === mainLineSeries) {
             setTimeout(() => {
