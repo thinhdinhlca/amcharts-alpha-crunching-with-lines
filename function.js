@@ -1,23 +1,23 @@
 window.function = function (data, overlayDataJson, width, height, type) {
 
-  // --- Input Handling & Cleaning ---
+  // --- Input Handling & Cleaning (Same as before) ---
   let dataStringValue = data.value ?? '[]';
   let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
   let chartWidth = width.value ?? 100;
   let chartHeight = height.value ?? 550;
   let chartTypeLabel = type.value ?? "Value";
   let cleanedDataString = '[]';
-  try { /* ... cleaning logic to make it parseable JSON, keeping value/value2 if present ... */
+  try { /* ... cleaning logic ... */
     let tempString = dataStringValue.trim();
     tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/bulletSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
-    tempString = tempString.replace(/,\s*(\})/g, '$1'); // Remove trailing commas in objects
-    tempString = tempString.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3'); // Quote keys
+    tempString = tempString.replace(/,\s*(\})/g, '$1');
+    tempString = tempString.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
     if (tempString && !tempString.startsWith('[')) { tempString = '[' + tempString; }
     if (tempString && !tempString.endsWith(']')) { tempString = tempString + ']'; }
-    if (!tempString || tempString === "[]" || tempString === "") { cleanedDataString = '[]'; }
-    else { JSON.parse(tempString); cleanedDataString = tempString; console.log("DEBUG: Cleaned primary data string."); }
+     if (!tempString || tempString === "[]" || tempString === "") { cleanedDataString = '[]'; }
+     else { JSON.parse(tempString); cleanedDataString = tempString; console.log("DEBUG: Cleaned primary data string potentially valid JSON."); }
   } catch (cleaningError) { console.error("!!! Failed to clean primary data string !!!", cleaningError); cleanedDataString = '[]'; }
   // console.log("DEBUG: Final string for primary data:", cleanedDataString);
 
@@ -52,48 +52,28 @@ am5.ready(function() {
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C" };
   const primaryOutlineColor = "#09077b";
   const primaryFillColor = "#b6dbee";
+  const positiveBarColor = "#006400"; // DarkGreen
+  const negativeBarColor = "#8B0000"; // DarkRed
 
   // --- Root Element and Theme ---
   var root = am5.Root.new("chartdiv");
   root.setThemes([am5themes_Animated.new(root)]);
   console.log("Root created.");
 
-  // --- Data Parsing Function ---
-  // *** MODIFIED: Filter primary to keep items with valid time/value, keep value2 if present ***
-  function parseChartData(primaryStr, overlayStr) {
-    let primaryData = [];
-    let parsedOverlayData = null;
-    let hasValidOverlay = false;
-
-    // Parse Primary Data
-    try {
-      let rawPrimary = JSON.parse(primaryStr);
-      if (Array.isArray(rawPrimary)) {
-        primaryData = rawPrimary.filter(item =>
-            item && typeof item === 'object' &&
-            item.hasOwnProperty('time') && typeof item.time === 'string' &&
-            item.hasOwnProperty('value') && typeof item.value === 'number'
-            // We keep the item even if value2 is missing/invalid,
-            // but the column series binding might not draw a bar then.
-            // Column color adapter will handle missing value2.
-        );
-        console.log("Primary data parsed & filtered (kept value2 if exists):", primaryData.length);
-      } else { console.warn("Parsed primary data is not an array."); }
-    } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; }
-
-    // Parse Overlay Data (Filter for time/value only)
-    try { /* ... same overlay parsing/filtering as before ... */
-        if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") { let rawOverlay = JSON.parse(overlayStr); if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) { parsedOverlayData = {}; let validKeys = 0; for (const key in rawOverlay) { if (Object.hasOwnProperty.call(rawOverlay, key)) { const weekDataRaw = rawOverlay[key]; if(Array.isArray(weekDataRaw)) { const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' ); if (processedWeekData.length > 0) { parsedOverlayData[key] = processedWeekData; validKeys++; } else { console.warn("Overlay data for key \\"" + key + "\\" had no valid items after filtering."); } } else { console.warn("Overlay data for key \\"" + key + "\\" was not an array."); } } } if (validKeys > 0) { hasValidOverlay = true; console.log("Overlay data parsed. Valid keys with data:", validKeys); } else { console.warn("Overlay data parsed, but no valid keys/data found."); parsedOverlayData = null; } } else { console.warn("Parsed overlay data is not a valid object."); } } else { console.log("No overlay data string provided."); }
-    } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; }
-
+  // --- Data Parsing Function (Keep value2 if present) ---
+  function parseChartData(primaryStr, overlayStr) { /* ... same as version before last ... */
+    let primaryData = []; let parsedOverlayData = null; let hasValidOverlay = false;
+    try { let rawPrimary = JSON.parse(primaryStr); if (Array.isArray(rawPrimary)) { primaryData = rawPrimary.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number'); console.log("Primary data parsed & filtered (kept value2 if exists):", primaryData.length); } else { console.warn("Parsed primary data is not an array."); } } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; }
+    try { if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") { let rawOverlay = JSON.parse(overlayStr); if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) { parsedOverlayData = {}; let validKeys = 0; for (const key in rawOverlay) { if (Object.hasOwnProperty.call(rawOverlay, key)) { const weekDataRaw = rawOverlay[key]; if(Array.isArray(weekDataRaw)) { const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' ); if (processedWeekData.length > 0) { parsedOverlayData[key] = processedWeekData; validKeys++; } else { console.warn("Overlay data for key \\"" + key + "\\" had no valid items after filtering."); } } else { console.warn("Overlay data for key \\"" + key + "\\" was not an array."); } } } if (validKeys > 0) { hasValidOverlay = true; console.log("Overlay data parsed. Valid keys with data:", validKeys); } else { console.warn("Overlay data parsed, but no valid keys/data found."); parsedOverlayData = null; } } else { console.warn("Parsed overlay data is not a valid object."); } } else { console.log("No overlay data string provided."); } } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; }
     return { primaryData, parsedOverlayData, hasValidOverlay };
-  }
+   }
 
 
   // --- Axis Category Preparation (Using primary data IN ORDER - Unchanged) ---
-  function prepareAxisCategories(primaryData) { /* ... */
-    if (!primaryData || primaryData.length === 0) { console.warn("Primary data is empty, axis will be empty."); return []; } try { console.log("Preparing axis categories assuming input primary data is sorted."); let categoryStrings = primaryData.map(item => item.time); let uniqueCategoryStrings = categoryStrings.filter((value, index, self) => self.indexOf(value) === index); let xAxisData = uniqueCategoryStrings.map(timeStr => ({ time: timeStr })); console.log("Axis categories prepared from primary data:", xAxisData.length); return xAxisData; } catch (e) { console.error("Error preparing axis categories:", e); return []; }
-  }
+  function prepareAxisCategories(primaryData) { /* ... same simplified version ... */
+     if (!primaryData || primaryData.length === 0) { console.warn("Primary data is empty, axis will be empty."); return []; } try { console.log("Preparing axis categories assuming input primary data is sorted."); let categoryStrings = primaryData.map(item => item.time); let uniqueCategoryStrings = categoryStrings.filter((value, index, self) => self.indexOf(value) === index); let xAxisData = uniqueCategoryStrings.map(timeStr => ({ time: timeStr })); console.log("Axis categories prepared from primary data:", xAxisData.length); return xAxisData; } catch (e) { console.error("Error preparing axis categories:", e); return []; }
+   }
+
 
   // --- Chart and Axes Creation (Using CategoryAxis - Unchanged) ---
   function createChartAndAxes(root, xAxisData) { /* ... */
@@ -102,25 +82,26 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Reinstate Column Series using value2 ***
+  // *** MODIFIED: Reintroduce columns, style area/columns, disable toggling ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("Creating primary series (Area & Column)...");
 
-    // 1. Area Series (Fixed Style, No Bullets)
+    // 1. Area Series (Outline + Fill, No Bullets, Not Toggleable)
     var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
-      name: "Selected Week", // Legend name
+      name: "Selected Week",
       xAxis: xAxis, yAxis: yAxis,
-      valueYField: "value", // Area chart uses 'value'
+      valueYField: "value",
       categoryXField: "time",
-      stroke: am5.color(primaryOutlineColor),
-      fill: am5.color(primaryFillColor),
-      fillOpacity: 0.8, // Adjusted opacity
+      stroke: am5.color(primaryOutlineColor), // Use defined outline color
+      fill: am5.color(primaryFillColor),     // Use defined fill color
+      fillOpacity: 0.8,                     // Fill opacity
       connect: false,
+      toggleable: false, // *** PREVENT TOGGLING IN LEGEND ***
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false,
           background: am5.Graphics.new(root, { fill: am5.color(primaryOutlineColor), fillOpacity: 0.9 }),
           labelTextColor: am5.color(0xffffff),
-          labelText: "{valueY.formatNumber('#.00')} @ {categoryX}" // Tooltip shows 'value'
+          labelText: "{valueY.formatNumber('#.00')} @ {categoryX}" // Keep time for primary
       })
     }));
     areaSeries.strokes.template.set("strokeWidth", 2);
@@ -130,58 +111,46 @@ am5.ready(function() {
     areaSeries.data.setAll(primaryData);
     areaSeries.appear(1000);
 
-    // 2. Column Series (Using value2, full width)
+    // 2. Column Series (Uses 'value' for Y, 'value2' for color, full width, Not Toggleable)
     var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: "Selected Week (Interval)", // Legend name
+      name: "Selected Week (Interval)", // Name can be different if needed
       xAxis: xAxis, yAxis: yAxis,
-      valueYField: "value2", // *** Plot height using value2 ***
+      valueYField: "value", // *** Height based on main 'value' ***
       categoryXField: "time",
+      toggleable: false, // *** PREVENT TOGGLING IN LEGEND ***
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: true, // Background matches column color
           labelTextColor: am5.color(0xffffff),
-          // *** Tooltip shows value2 ***
-          labelText: "Interval: {valueY.formatNumber('#.00')}" // No time needed here
+          // Show main 'value' in tooltip as well
+          labelText: "Interval: {valueY.formatNumber('#.00')} @ {categoryX}"
       })
     }));
 
-    // Adapter for positive/negative coloring (checks value2 first)
+    // Adapter for positive/negative coloring (checks value2 first, then value)
     columnSeries.columns.template.adapters.add("fill", function(fill, target) {
       const dataContext = target.dataItem?.dataContext;
-      // Use value2 if it's a valid number, otherwise fallback is tricky (maybe default green?)
-      const valueForColor = (dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number')
-                             ? dataContext.value2
-                             : null; // Set to null if value2 invalid/missing
+      const valueForColor = dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number' ? dataContext.value2 : dataContext?.value;
 
-      const defaultPositiveColor = am5.color(0x006400); // DarkGreen
-
-      if (valueForColor !== null && valueForColor < 0) {
-        return am5.color(0x8B0000); // DarkRed
-      }
-      // If valueForColor is null or >= 0, use theme fill or default green
-      return fill || defaultPositiveColor;
+      if (typeof valueForColor === 'number' && valueForColor < 0) { return am5.color(negativeBarColor); }
+      return fill || am5.color(positiveBarColor); // Use theme fill or default positive
     });
-     // Adapter for stroke to match fill
     columnSeries.columns.template.adapters.add("stroke", function(stroke, target) {
-       const dataContext = target.dataItem?.dataContext;
-       const valueForColor = (dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number')
-                             ? dataContext.value2
-                             : null;
-       const defaultPositiveColor = am5.color(0x006400); // DarkGreen
+        const dataContext = target.dataItem?.dataContext;
+        const valueForColor = dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number' ? dataContext.value2 : dataContext?.value;
 
-       if (valueForColor !== null && valueForColor < 0) {
-        return am5.color(0x8B0000); // DarkRed
-      }
-       return stroke || defaultPositiveColor;
+        if (typeof valueForColor === 'number' && valueForColor < 0) { return am5.color(negativeBarColor); }
+        return stroke || am5.color(positiveBarColor); // Use theme stroke or default positive
     });
 
-    // Column Styling: Full width for "area" look
+    // Column Styling: Full width
     columnSeries.columns.template.setAll({
-      strokeWidth: 1,
+      strokeWidth: 0, // No stroke for seamless area look
+      strokeOpacity: 0,
       width: am5.percent(100) // Make columns touch
     });
 
     columnSeries.data.setAll(primaryData);
-    columnSeries.hide(0); // Start hidden
+    columnSeries.hide(0); // Still start hidden
     columnSeries.appear(1000);
 
     console.log("Primary series (Area & Column) created.");
@@ -189,51 +158,66 @@ am5.ready(function() {
   }
 
 
-  // --- Overlay Series Creation (Simplified Tooltip - Unchanged) ---
+  // --- Overlay Series Creation ---
+  // *** MODIFIED: Simplified tooltip ***
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
-    let overlaySeriesList = []; if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; } console.log("Creating overlay series..."); try { for (const weekKey in overlayData) { if (Object.hasOwnProperty.call(overlayData, weekKey)) { const weekData = overlayData[weekKey]; console.log("Creating LineSeries for: " + weekKey); var lineSeries = chart.series.push(am5xy.LineSeries.new(root, { name: weekKey, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")), connect: false, tooltip: am5.Tooltip.new(root, { getFillFromSprite: true, labelTextColor: am5.color(0xffffff), labelText: "{name}: {valueY.formatNumber('#.00')}" // Simplified text }) })); lineSeries.strokes.template.set("strokeWidth", 2); lineSeries.data.setAll(weekData); lineSeries.appear(1000); overlaySeriesList.push(lineSeries); } } } catch (e) { console.error("Error creating overlay series:", e); } console.log("Overlay series creation finished:", overlaySeriesList.length); return overlaySeriesList;
+    let overlaySeriesList = [];
+    if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; }
+    console.log("Creating overlay series...");
+    try {
+      for (const weekKey in overlayData) {
+        if (Object.hasOwnProperty.call(overlayData, weekKey)) {
+          const weekData = overlayData[weekKey];
+          console.log("Creating LineSeries for: " + weekKey);
+          var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
+            name: weekKey,
+            xAxis: xAxis, yAxis: yAxis,
+            valueYField: "value",
+            categoryXField: "time",
+            stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")),
+            connect: false, // Keep false
+            tooltip: am5.Tooltip.new(root, {
+                getFillFromSprite: true,
+                labelTextColor: am5.color(0xffffff),
+                labelText: "{name}: {valueY.formatNumber('#.00')}" // Name and Value only
+            })
+          }));
+          lineSeries.strokes.template.set("strokeWidth", 2);
+          // No bullets for overlays
+          lineSeries.data.setAll(weekData);
+          lineSeries.appear(1000);
+          overlaySeriesList.push(lineSeries);
+        }
+      }
+    } catch (e) { console.error("Error creating overlay series:", e); }
+    console.log("Overlay series creation finished:", overlaySeriesList.length);
+    return overlaySeriesList;
    }
 
 
-  // --- Legend Creation ---
-  // *** MODIFIED: Disable toggling for primary series ***
+  // --- Legend Creation (Unchanged logic, but series config prevents toggle) ---
   function createLegend(chart, root, seriesList) {
-     if (!seriesList || seriesList.length === 0) {
-         console.log("Skipping legend (no series)."); return null;
-     }
+     if (!seriesList || seriesList.length === 0) { console.log("Skipping legend (no series)."); return null; }
      console.log("Creating legend for", seriesList.length, "series...");
      var legend = chart.children.push(am5.Legend.new(root, {
          x: am5.percent(50), centerX: am5.percent(50),
          layout: root.horizontalLayout,
          marginTop: 15, marginBottom: 15
      }));
-
-     // Set data first
-     legend.data.setAll(seriesList);
-
-     // Iterate through legend items AFTER data is set
-     // Disable toggle for the first two series (areaSeries, columnSeries)
-     legend.itemContainers.each(function(itemContainer, index) {
-         if (index < 2) { // Assuming first two are area and column
-            itemContainer.set("togglable", false);
-            // Optional: slightly grey out the untoggleable items
-            itemContainer.set("interactive", false); // Disable hover effects too
-            itemContainer.set("opacity", 0.7);
-            console.log("Disabled toggling for legend item:", itemContainer.dataItem.dataContext.get("name"));
-         } else {
-            itemContainer.set("toggleOnClick", true); // Ensure others are toggleable
-         }
-     });
-
-     console.log("Legend created & configured.");
+     // Note: toggleOnClick still needed for overlays. Setting toggleable: false on the
+     // primary series themselves prevents them from being toggled here.
+     legend.itemContainers.template.set("toggleOnClick", true);
+     legend.data.setAll(seriesList); // Contains [area, column, overlay1...]
+     console.log("Legend created.");
      return legend;
    }
+
 
   // --- Final Chart Configuration (Unchanged) ---
   function configureChart(chart, root, yAxis, xAxis, label) { /* ... */ console.log("Configuring final chart elements..."); var cursor = chart.set("cursor", am5xy.XYCursor.new(root, { behavior: "none" })); cursor.lineY.set("visible", false); yAxis.children.unshift(am5.Label.new(root, { rotation: -90, text: "Average " + label + " Points", y: am5.p50, centerX: am5.p50, paddingRight: 10 })); xAxis.children.push(am5.Label.new(root, { text: "Time of Day", x: am5.p50, centerX: am5.percent(50), paddingTop: 10 })); chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 5 })); chart.appear(1000, 100); console.log("Chart configured."); }
 
 
-  // --- Main Execution Flow ---
+  // --- Main Execution Flow (Unchanged) ---
   console.log("--- Starting Chart Build Process ---");
   const { primaryData, parsedOverlayData, hasValidOverlay } = parseChartData(primaryDataString, overlayString);
   const xAxisData = prepareAxisCategories(primaryData);
@@ -241,7 +225,7 @@ am5.ready(function() {
   const primarySeries = createPrimarySeries(chart, root, primaryData, xAxis, yAxis); // Returns [area, column]
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
   const allSeriesForLegend = [...primarySeries, ...overlaySeries];
-  createLegend(chart, root, allSeriesForLegend); // Pass all to legend function
+  createLegend(chart, root, allSeriesForLegend);
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
   console.log("--- Chart Build Process Complete ---");
 
