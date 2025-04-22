@@ -3,7 +3,6 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
   // --- Input Handling & Cleaning ---
   let dataStringValue = data.value ?? '[]';
   let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
-  // Get intervalName or provide a default
   let intervalNameValue = intervalName.value ?? "Period"; // Default to "Period"
   let chartWidth = width.value ?? 100;
   let chartHeight = height.value ?? 550;
@@ -37,7 +36,6 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
   <style>
     html, body { margin: 0; padding: 0; height: 100%; width: 100%; }
     #chartdiv { width: ${chartWidth}%; height: ${chartHeight}px; }
-    /* Optional: Style tooltips globally if needed */
     .am5-tooltip {
       font-size: 0.85em; /* Smaller font globally */
     }
@@ -54,18 +52,14 @@ am5.ready(function() {
   // --- Configuration & Data ---
   const primaryDataString = ${JSON.stringify(cleanedDataString)};
   const overlayString = ${JSON.stringify(overlayDataJsonStringValue)};
-  // Get intervalName passed from the function
-  const intervalName = ${JSON.stringify(intervalNameValue)};
+  const intervalName = ${JSON.stringify(intervalNameValue)}; // Use intervalName from input
   const chartTypeLabel = ${JSON.stringify(chartTypeLabel)};
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C" };
-  // Primary Chart Colors
   const primaryOutlineColor = "#09077b";
   const primaryFillColor = "#b6dbee";
-  // Value2 Bar Colors
-  const positiveValue2Color = "#052f20"; // Dark Green
-  const negativeValue2Color = "#78080e"; // Dark Red
-  // Tooltip Font Size
-  const tooltipFontSize = "0.8em"; // Smaller font size
+  const positiveValue2Color = "#052f20";
+  const negativeValue2Color = "#78080e";
+  const tooltipFontSize = "0.8em";
 
   // --- Root Element and Theme ---
   var root = am5.Root.new("chartdiv");
@@ -89,13 +83,13 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Use intervalName, default tooltip backgrounds, add tooltip to bars ***
+  // *** MODIFIED: Column strokeWidth/width, Line tooltip text ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
 
     // 1. Area Fill Series (Light Blue Columns, No Tooltip, No Toggle)
     var areaFillSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-        name: intervalName + " (Area Base)", // Use intervalName, internal use mostly
+        name: intervalName + " (Area Base)",
         xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
         fill: am5.color(primaryFillColor), strokeOpacity: 0, toggleable: false,
     }));
@@ -106,38 +100,40 @@ am5.ready(function() {
 
     // 2. Value2 Bar Series (Red/Green, Tooltip, No Toggle)
     var value2BarSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: intervalName + " (Cumulative)", // Use intervalName
+      name: intervalName + " (Cumulative)",
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
-      toggleable: false, // Cannot be turned off
-      // *** ADD TOOLTIP ***
+      toggleable: false,
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: true, // Background matches column color (red/green)
-          labelTextColor: am5.color(0xffffff), // White text usually works
-          fontSize: tooltipFontSize, // Smaller font
-          labelText: "Cumulative: {valueY.formatNumber('#.##')}" // Show 'value2'
+          getFillFromSprite: true,
+          labelTextColor: am5.color(0xffffff),
+          fontSize: tooltipFontSize,
+          labelText: "Cumulative: {valueY.formatNumber('#.##')}"
       })
     }));
-    // Adapters for coloring
-    value2BarSeries.columns.template.adapters.add("fill", function(fill, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff); });
-    value2BarSeries.columns.template.adapters.add("stroke", function(stroke, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff); });
-    // Column Styling: strokeWidth = 2
-    value2BarSeries.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(100) });
+    value2BarSeries.columns.template.adapters.add("fill", function(fill, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); /* Invisible if no value2 */ });
+    value2BarSeries.columns.template.adapters.add("stroke", function(stroke, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); /* Invisible if no value2 */ });
+    // *** Column Styling: strokeWidth = 5, width = 100% ***
+    value2BarSeries.columns.template.setAll({
+      strokeWidth: 5,      // Set stroke width
+      strokeOpacity: 1,    // Make stroke visible
+      width: am5.percent(100) // Set width to 100%
+    });
     value2BarSeries.data.setAll(primaryData);
     value2BarSeries.appear(1000);
 
 
     // 3. Area Line Series (Dark Blue Outline, Tooltip, No Toggle)
     var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
-      name: intervalName, // Use intervalName
+      name: intervalName, // Use intervalName from input
       xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
       stroke: am5.color(primaryOutlineColor), fillOpacity: 0,
       connect: false, toggleable: false,
-      // *** Use default tooltip background behavior ***
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: true, // Inherit background from line stroke
-          labelTextColor: am5.color(0xffffff), // White text
-          fontSize: tooltipFontSize, // Smaller font
-          labelText: "{valueY.formatNumber('#.00')} @ {categoryX}" // Value and Time
+          getFillFromSprite: true, // Background matches line stroke
+          labelTextColor: am5.color(0xffffff),
+          fontSize: tooltipFontSize,
+          // *** MODIFIED TOOLTIP TEXT ***
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}" // Use intervalName: Value
       })
     }));
     areaSeries.strokes.template.set("strokeWidth", 2);
@@ -153,49 +149,12 @@ am5.ready(function() {
 
 
   // --- Overlay Series Creation (Default tooltip background) ---
-  function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
-    let overlaySeriesList = [];
-    if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; }
-    console.log("Creating overlay series...");
-    try {
-      for (const weekKey in overlayData) {
-        if (Object.hasOwnProperty.call(overlayData, weekKey)) {
-          const weekData = overlayData[weekKey];
-          console.log("Creating LineSeries for: " + weekKey);
-          var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-            name: weekKey, // Keep original overlay names (Last Week etc)
-            xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
-            stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")),
-            connect: false,
-            tooltip: am5.Tooltip.new(root, {
-                getFillFromSprite: true, // *** Default behavior: matches line ***
-                labelTextColor: am5.color(0xffffff), // White text
-                fontSize: tooltipFontSize, // Smaller font
-                labelText: "{name}: {valueY.formatNumber('#.00')}" // Name and Value only
-            })
-          }));
-          lineSeries.strokes.template.set("strokeWidth", 2);
-          lineSeries.data.setAll(weekData);
-          lineSeries.appear(1000);
-          overlaySeriesList.push(lineSeries); // These remain toggleable
-        }
-      }
-    } catch (e) { console.error("Error creating overlay series:", e); }
-    console.log("Overlay series creation finished:", overlaySeriesList.length);
-    return overlaySeriesList;
+  function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) { /* ... same as previous ... */
+    let overlaySeriesList = []; if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; } console.log("Creating overlay series..."); try { for (const weekKey in overlayData) { if (Object.hasOwnProperty.call(overlayData, weekKey)) { const weekData = overlayData[weekKey]; console.log("Creating LineSeries for: " + weekKey); var lineSeries = chart.series.push(am5xy.LineSeries.new(root, { name: weekKey, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")), connect: false, tooltip: am5.Tooltip.new(root, { getFillFromSprite: true, labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}" }) })); lineSeries.strokes.template.set("strokeWidth", 2); lineSeries.data.setAll(weekData); lineSeries.appear(1000); overlaySeriesList.push(lineSeries); } } } catch (e) { console.error("Error creating overlay series:", e); } console.log("Overlay series creation finished:", overlaySeriesList.length); return overlaySeriesList;
    }
 
-
-  // --- Legend Creation (Handles non-toggleable primary series) ---
-  function createLegend(chart, root, seriesList) { /* ... same logic ... */
-     if (!seriesList || seriesList.length === 0) { console.log("Skipping legend (no series)."); return null; }
-     console.log("Creating legend for", seriesList.length, "series...");
-     var legend = chart.children.push(am5.Legend.new(root, { x: am5.percent(50), centerX: am5.percent(50), layout: root.horizontalLayout, marginTop: 15, marginBottom: 15 }));
-     legend.itemContainers.template.set("toggleOnClick", true); // Needed for overlays
-     legend.data.setAll(seriesList);
-     console.log("Legend created.");
-     return legend;
-   }
+  // --- Legend Creation (Unchanged) ---
+  function createLegend(chart, root, seriesList) { /* ... */ if (!seriesList || seriesList.length === 0) { console.log("Skipping legend (no series)."); return null; } console.log("Creating legend for", seriesList.length, "series..."); var legend = chart.children.push(am5.Legend.new(root, { x: am5.percent(50), centerX: am5.percent(50), layout: root.horizontalLayout, marginTop: 15, marginBottom: 15 })); legend.itemContainers.template.set("toggleOnClick", true); legend.data.setAll(seriesList); console.log("Legend created."); return legend; }
 
   // --- Final Chart Configuration (Unchanged) ---
   function configureChart(chart, root, yAxis, xAxis, label) { /* ... */ console.log("Configuring final chart elements..."); var cursor = chart.set("cursor", am5xy.XYCursor.new(root, { behavior: "none" })); cursor.lineY.set("visible", false); yAxis.children.unshift(am5.Label.new(root, { rotation: -90, text: "Average " + label + " Points", y: am5.p50, centerX: am5.p50, paddingRight: 10 })); xAxis.children.push(am5.Label.new(root, { text: "Time of Day", x: am5.p50, centerX: am5.percent(50), paddingTop: 10 })); chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 5 })); chart.appear(1000, 100); console.log("Chart configured."); }
