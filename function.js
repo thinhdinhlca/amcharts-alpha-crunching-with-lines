@@ -52,6 +52,8 @@ am5.ready(function() {
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C" };
   const primaryOutlineColor = "#09077b";
   const primaryFillColor = "#b6dbee";
+  const positiveBarColor = "#006400"; // DarkGreen
+  const negativeBarColor = "#8B0000"; // DarkRed
 
   // --- Root Element and Theme ---
   var root = am5.Root.new("chartdiv");
@@ -78,11 +80,11 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Column color fixed, Tooltips adjusted, No toggling ***
+  // *** MODIFIED: Reintroduce columns, Red/Green logic, NO Column Tooltip, BOTH non-toggleable ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
-    console.log("Creating primary series (Area & Fixed Column)...");
+    console.log("Creating primary series (Area & R/G Column)...");
 
-    // 1. Area Series (Outline + Fill, No Bullets, Not Toggleable)
+    // 1. Area Series (Fixed Style, No Bullets, Not Toggleable)
     var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
       name: "Selected Week",
       xAxis: xAxis, yAxis: yAxis,
@@ -97,7 +99,7 @@ am5.ready(function() {
           getFillFromSprite: false,
           background: am5.Graphics.new(root, { fill: am5.color(primaryOutlineColor), fillOpacity: 0.9 }),
           labelTextColor: am5.color(0xffffff),
-          labelText: "{valueY.formatNumber('#.00')} @ {categoryX}" // Value and Time
+          labelText: "{valueY.formatNumber('#.00')} @ {categoryX}" // Keep time for this one
       })
     }));
     areaSeries.strokes.template.set("strokeWidth", 2);
@@ -106,34 +108,50 @@ am5.ready(function() {
     areaSeries.data.setAll(primaryData);
     areaSeries.appear(1000);
 
-    // 2. Column Series (Fixed color, full width, Not Toggleable, Simple Tooltip)
+    // 2. Column Series (Red/Green based on value2/value, Normal Width, No Tooltip, Not Toggleable)
     var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: "Selected Week (Interval)",
+      name: "Selected Week (Interval)", // Name appears in Legend, but won't toggle
       xAxis: xAxis, yAxis: yAxis,
       valueYField: "value", // Height based on main 'value'
       categoryXField: "time",
-      fill: am5.color(primaryFillColor), // *** Same color as area fill ***
-      strokeOpacity: 0, // No border between columns
       toggleable: false, // *** Cannot be turned off via legend ***
-      tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: true, // Background matches column color (#b6dbee)
-          labelTextColor: am5.color(0x000000), // *** Black text for light blue background ***
-          labelText: "Interval: {valueY.formatNumber('#.00')}" // Interval Value only
-      })
+      // *** NO TOOLTIP DEFINED FOR THIS SERIES ***
     }));
-    // *** NO COLOR ADAPTERS NEEDED ***
-    columnSeries.columns.template.setAll({ width: am5.percent(100) });
+
+    // Adapter for positive/negative coloring (checks value2 first, then value)
+    columnSeries.columns.template.adapters.add("fill", function(fill, target) {
+      const dataContext = target.dataItem?.dataContext;
+      const valueForColor = dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number' ? dataContext.value2 : dataContext?.value;
+      if (typeof valueForColor === 'number' && valueForColor < 0) { return am5.color(negativeBarColor); }
+      return fill || am5.color(positiveBarColor); // Use theme fill or default positive
+    });
+    // Adapter for stroke to match fill (or can set strokeOpacity: 0)
+    columnSeries.columns.template.adapters.add("stroke", function(stroke, target) {
+        const dataContext = target.dataItem?.dataContext;
+        const valueForColor = dataContext?.hasOwnProperty('value2') && typeof dataContext.value2 === 'number' ? dataContext.value2 : dataContext?.value;
+        if (typeof valueForColor === 'number' && valueForColor < 0) { return am5.color(negativeBarColor); }
+        return stroke || am5.color(positiveBarColor);
+    });
+
+    // Column Styling: Normal width, visible stroke
+    columnSeries.columns.template.setAll({
+      strokeWidth: 1, // Give columns a thin border matching their fill
+      strokeOpacity: 1,
+      width: am5.percent(60) // *** Back to standard width ***
+    });
+
     columnSeries.data.setAll(primaryData);
-    columnSeries.hide(0); // Start hidden
+    // *** Make column series visible by default ***
+    columnSeries.show(0); // Use show() instead of hide()
     columnSeries.appear(1000);
 
     console.log("Primary series (Area & Column) created.");
-    return [areaSeries, columnSeries];
+    return [areaSeries, columnSeries]; // Return both for Legend list
   }
 
 
   // --- Overlay Series Creation ---
-  // *** MODIFIED: Ensure tooltip background matches line ***
+  // *** MODIFIED: Tooltip background should match line ***
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
     let overlaySeriesList = [];
     if (!overlayData) { console.log("No valid overlay data provided."); return overlaySeriesList; }
@@ -150,9 +168,8 @@ am5.ready(function() {
             categoryXField: "time",
             stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")),
             connect: false,
-            // *** Make overlay tooltips match line color ***
             tooltip: am5.Tooltip.new(root, {
-                getFillFromSprite: true, // Inherit background from line stroke
+                getFillFromSprite: true, // *** Inherit background from line stroke ***
                 labelTextColor: am5.color(0xffffff), // White text
                 labelText: "{name}: {valueY.formatNumber('#.00')}" // Name and Value only
             })
@@ -179,8 +196,7 @@ am5.ready(function() {
          layout: root.horizontalLayout,
          marginTop: 15, marginBottom: 15
      }));
-     // This setting allows overlays to be toggled, while series with toggleable:false won't react
-     legend.itemContainers.template.set("toggleOnClick", true);
+     legend.itemContainers.template.set("toggleOnClick", true); // Needed for overlays
      legend.data.setAll(seriesList);
      console.log("Legend created.");
      return legend;
