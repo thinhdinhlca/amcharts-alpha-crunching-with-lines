@@ -18,8 +18,9 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
   let cleanedDataString = '[]';
 
   console.log("[window.function] Starting primary data cleaning...");
+  let tempString = ''; // Define tempString outside try for logging in catch
   try {
-    let tempString = dataStringValue.trim();
+    tempString = dataStringValue.trim();
     console.log("[window.function][Clean] Trimmed:", tempString.substring(0, 100) + '...');
     tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
@@ -43,14 +44,15 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
      }
   } catch (cleaningError) {
     console.error("[window.function] !!! Failed to clean or validate primary data string !!!", cleaningError);
-    console.error("[window.function] Original primary data string:", dataStringValue);
-    console.error("[window.function] String after cleaning attempt:", tempString); // Log the problematic string
+    console.error("[window.function] Original primary data string (truncated):", dataStringValue.substring(0, 500) + '...');
+    console.error("[window.function] String after cleaning attempt (truncated):", tempString.substring(0, 500) + '...'); // Log the problematic string
     cleanedDataString = '[]'; // Default to empty on error
   }
   console.log("[window.function] Final cleaned primary data string:", cleanedDataString.substring(0, 200) + '...'); // Log truncated final
 
 
   // --- HTML Template ---
+  // Using backticks for the main HTML template
   let ht = `
 <!DOCTYPE html>
 <html>
@@ -78,6 +80,7 @@ am5.ready(function() {
   console.log("[am5.ready] invoked.");
 
   // --- Configuration & Data ---
+  // These variables are correctly interpolated from the outer scope using ${...}
   const primaryDataString = ${JSON.stringify(cleanedDataString)};
   const overlayString = ${JSON.stringify(overlayDataJsonStringValue)};
   const intervalName = ${JSON.stringify(intervalNameValue)};
@@ -102,6 +105,7 @@ am5.ready(function() {
   console.log("[am5.ready] Root element created and theme set.");
 
   // --- Data Parsing Function ---
+  // Defined WITHIN the script tag
   function parseChartData(primaryStr, overlayStr) {
     console.log("[parseChartData] Start");
     console.log("[parseChartData] Input primaryStr:", primaryStr ? primaryStr.substring(0, 150) + '...' : 'empty');
@@ -118,13 +122,15 @@ am5.ready(function() {
       console.log("[parseChartData] Primary JSON parsed successfully. Type:", Array.isArray(rawPrimary) ? 'Array' : typeof rawPrimary);
       if (Array.isArray(rawPrimary)) {
         primaryData = rawPrimary.map((item, index) => {
-          // console.log(`[parseChartData] Processing primary item ${index}:`, item); // Log each item (can be verbose)
+          // console.log('[parseChartData] Processing primary item ' + index + ':', item); // Log each item (can be verbose) - USING CONCATENATION
           if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) {
-             console.warn(`[parseChartData] Invalid primary item format at index ${index}:`, item);
-            return null;
+             // *** FIXED LINE: Using standard string concatenation (+) instead of nested backticks ***
+             console.warn('[parseChartData] Invalid primary item format at index ' + index + ':', item);
+             return null;
           }
           if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') {
-            console.log(`[parseChartData] Removing non-numeric value2 from item ${index}.`);
+            // Using template literal here is fine as it's NOT nested within the outer ht literal scope
+            console.log(\`[parseChartData] Removing non-numeric value2 from item \${index}.\`);
             delete item.value2;
           }
           return item;
@@ -136,7 +142,7 @@ am5.ready(function() {
       }
     } catch (e) {
       console.error("[parseChartData] Error parsing primary data JSON:", e);
-      console.error("[parseChartData] Faulty primaryStr:", primaryStr);
+      console.error("[parseChartData] Faulty primaryStr (truncated):", primaryStr ? primaryStr.substring(0, 500)+'...' : 'empty/null');
       primaryData = [];
     }
 
@@ -150,34 +156,41 @@ am5.ready(function() {
             if (Array.isArray(rawOverlayArray)) {
                 parsedOverlayData = {};
                 let validKeysFound = 0;
-                console.log(`[parseChartData] Processing ${rawOverlayArray.length} potential overlay series objects.`);
+                // Using template literal here is fine
+                console.log(\`[parseChartData] Processing \${rawOverlayArray.length} potential overlay series objects.\`);
 
                 for (const seriesObject of rawOverlayArray) {
+                    // Using concatenation for safety, though template literal might be okay here too
                     console.log("[parseChartData][OverlayLoop] Processing series object:", JSON.stringify(seriesObject).substring(0,100) + '...');
                     if (seriesObject && typeof seriesObject === 'object' && !Array.isArray(seriesObject) && Object.keys(seriesObject).length === 1) {
                         const key = Object.keys(seriesObject)[0];
                         const weekDataRaw = seriesObject[key];
-                        console.log(`[parseChartData][OverlayLoop] Extracted key: "${key}". Checking data type:`, Array.isArray(weekDataRaw) ? 'Array' : typeof weekDataRaw);
+                        // Using template literal here is fine
+                        console.log(\`[parseChartData][OverlayLoop] Extracted key: "\${key}". Checking data type:\`, Array.isArray(weekDataRaw) ? 'Array' : typeof weekDataRaw);
 
                         if(Array.isArray(weekDataRaw)) {
-                            console.log(`[parseChartData][OverlayLoop] Filtering data for key "${key}". Raw item count: ${weekDataRaw.length}`);
+                            // Using template literal here is fine
+                            console.log(\`[parseChartData][OverlayLoop] Filtering data for key "\${key}". Raw item count: \${weekDataRaw.length}\`);
                             const processedWeekData = weekDataRaw.filter((item, index) => {
                                 const isValid = item && typeof item === 'object' &&
                                       item.hasOwnProperty('time') && typeof item.time === 'string' &&
                                       item.hasOwnProperty('value') && typeof item.value === 'number';
-                                // if (!isValid) { console.warn(`[parseChartData][OverlayLoop] Invalid item in "${key}" at index ${index}:`, item); } // Verbose log for invalid items
+                                // if (!isValid) { console.warn('[parseChartData][OverlayLoop] Invalid item in "' + key + '" at index ' + index + ':', item); } // Verbose log - CONCATENATION
                                 return isValid;
                             }).map(item => ({ time: item.time, value: item.value }));
 
                             if (processedWeekData.length > 0) {
                                 parsedOverlayData[key] = processedWeekData;
                                 validKeysFound++;
-                                console.log(`[parseChartData][OverlayLoop] Parsed overlay data for key "${key}" successfully. Valid items: ${processedWeekData.length}`);
+                                // Using template literal here is fine
+                                console.log(\`[parseChartData][OverlayLoop] Parsed overlay data for key "\${key}" successfully. Valid items: \${processedWeekData.length}\`);
                             } else {
-                                console.warn(`[parseChartData][OverlayLoop] Overlay data for key "${key}" had no valid items after filtering.`);
+                                // Using template literal here is fine
+                                console.warn(\`[parseChartData][OverlayLoop] Overlay data for key "\${key}" had no valid items after filtering.\`);
                             }
                         } else {
-                             console.warn(`[parseChartData][OverlayLoop] Overlay data value for key "${key}" was not an array.`);
+                             // Using template literal here is fine
+                             console.warn(\`[parseChartData][OverlayLoop] Overlay data value for key "\${key}" was not an array.\`);
                         }
                     } else {
                         console.warn("[parseChartData][OverlayLoop] Skipping invalid item in overlay data array (not a single-key object):", JSON.stringify(seriesObject));
@@ -201,7 +214,7 @@ am5.ready(function() {
         }
     } catch (e) {
         console.error("[parseChartData] Error parsing overlay JSON:", e);
-        console.error("[parseChartData] Faulty overlayStr:", overlayStr);
+        console.error("[parseChartData] Faulty overlayStr (truncated):", overlayStr ? overlayStr.substring(0, 500)+'...' : 'empty/null');
         parsedOverlayData = null;
         hasValidOverlay = false;
     }
@@ -215,6 +228,7 @@ am5.ready(function() {
 
 
   // --- Axis Category Preparation ---
+  // (Code remains the same - uses template literals appropriately)
   function prepareAxisCategories(primaryData) {
      console.log("[prepareAxisCategories] Start. Input primaryData length:", primaryData ? primaryData.length : 'null/undefined');
      if (!primaryData || primaryData.length === 0) { console.warn("[prepareAxisCategories] Primary data is empty, axis will be empty."); return []; }
@@ -234,6 +248,7 @@ am5.ready(function() {
    }
 
   // --- Chart and Axes Creation ---
+  // (Code remains the same)
   function createChartAndAxes(root, xAxisData) {
     console.log("[createChartAndAxes] Start. Input xAxisData length:", xAxisData ? xAxisData.length : 'null/undefined');
     console.log("[createChartAndAxes] Creating XYChart...");
@@ -246,7 +261,8 @@ am5.ready(function() {
     if (xAxisData && xAxisData.length > 0) {
       console.log("[createChartAndAxes] Setting data on X-Axis...");
       xAxis.data.setAll(xAxisData);
-      console.log("[createChartAndAxes] Set", xAxisData.length, "categories on X-Axis.");
+      // Using template literal here is fine
+      console.log(\`[createChartAndAxes] Set \${xAxisData.length} categories on X-Axis.\`);
     } else {
       console.warn("[createChartAndAxes] X-Axis has no data categories to set.");
     }
@@ -260,7 +276,8 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
+  // (Code remains the same - uses template literals appropriately)
+   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("[createPrimarySeries] Start. Input primaryData length:", primaryData ? primaryData.length : 'null/undefined');
     let lineSeries, fillSeries, value2Series;
 
@@ -287,7 +304,7 @@ am5.ready(function() {
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false, labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize,
           background: am5.RoundedRectangle.new(root, { fill: am5.color(0xffffff) }),
-          labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
+          labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}" // amCharts handles {placeholders}
       })
     }));
     // Adapters... (Logs inside adapters can be very noisy, usually omitted unless debugging them specifically)
@@ -308,7 +325,7 @@ am5.ready(function() {
       stroke: am5.color(primaryOutlineColor), fillOpacity: 0, connect: false,
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: true, labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize,
-          labelText: intervalName + ": {valueY.formatNumber('#.00')}"
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}" // amCharts handles {placeholders}
       })
     }));
     lineSeries.strokes.template.set("strokeWidth", 2);
@@ -330,6 +347,7 @@ am5.ready(function() {
 
 
   // --- Overlay Series Creation ---
+  // (Code remains the same - uses template literals appropriately)
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      console.log("[createOverlaySeries] Start. Input overlayData keys:", overlayData ? Object.keys(overlayData) : 'null');
      let overlaySeriesList = [];
@@ -341,7 +359,8 @@ am5.ready(function() {
          if (Object.hasOwnProperty.call(overlayData, weekKey)) {
            const weekData = overlayData[weekKey];
            const color = colors[weekKey] || root.interfaceColors.get("grid");
-           console.log(`[createOverlaySeries] Creating LineSeries for key: "${weekKey}" with ${weekData.length} items. Color: ${color.toString()}`);
+           // Using template literal here is fine
+           console.log(\`[createOverlaySeries] Creating LineSeries for key: "\${weekKey}" with \${weekData.length} items. Color: \${color.toString()}\`);
 
            var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
                name: weekKey,
@@ -351,16 +370,19 @@ am5.ready(function() {
                connect: false,
                tooltip: am5.Tooltip.new(root, {
                    getFillFromSprite: true, labelTextColor: am5.color(0xffffff),
-                   fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}"
+                   fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}" // amCharts handles {placeholders}
                })
            }));
            lineSeries.strokes.template.set("strokeWidth", 2);
-           console.log(`[createOverlaySeries] Setting data for "${weekKey}" series...`);
+           // Using template literal here is fine
+           console.log(\`[createOverlaySeries] Setting data for "\${weekKey}" series...\`);
            lineSeries.data.setAll(weekData);
-           console.log(`[createOverlaySeries] Making "${weekKey}" series appear...`);
+           // Using template literal here is fine
+           console.log(\`[createOverlaySeries] Making "\${weekKey}" series appear...\`);
            lineSeries.appear(1000);
            overlaySeriesList.push(lineSeries);
-           console.log(`[createOverlaySeries] Series for "${weekKey}" created and added.`);
+           // Using template literal here is fine
+           console.log(\`[createOverlaySeries] Series for "\${weekKey}" created and added.\`);
          }
        }
      } catch (e) {
@@ -371,6 +393,7 @@ am5.ready(function() {
    }
 
   // --- Legend Creation & Linking ---
+  // (Code remains the same - uses template literals appropriately)
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
      console.log("[createLegend] Start.");
      console.log("[createLegend] mainLineSeries name:", mainLineSeries ? mainLineSeries.get('name') : 'N/A');
@@ -411,25 +434,29 @@ am5.ready(function() {
         if (!clickedSeries) return;
 
         const clickedSeriesName = clickedSeries.get("name");
-        console.log(`[createLegend][Click] Clicked legend item: "${clickedSeriesName}"`);
+        // Using template literal here is fine
+        console.log(\`[createLegend][Click] Clicked legend item: "\${clickedSeriesName}"\`);
 
         // Check if the clicked item is the main line series for linked toggling
         if (clickedSeries === mainLineSeries) {
-            console.log(`[createLegend][Click] Clicked item is the main line series ("${mainLineSeries.get('name')}").`);
+            // Using template literal here is fine
+            console.log(\`[createLegend][Click] Clicked item is the main line series ("\${mainLineSeries.get('name')}").\`);
             // Use setTimeout to allow the default toggle action to complete first
             setTimeout(() => {
                  const isHidden = mainLineSeries.isHidden(); // Check visibility *after* the default toggle
-                 console.log(`[createLegend][Click][Timeout] Main line series "${mainLineSeries.get('name')}" is now ${isHidden ? 'hidden' : 'visible'}.`);
+                 // Using template literal here is fine
+                 console.log(\`[createLegend][Click][Timeout] Main line series "\${mainLineSeries.get('name')}" is now \${isHidden ? 'hidden' : 'visible'}.\`);
                  if (isHidden) {
-                    console.log(`[createLegend][Click][Timeout] Hiding linked fill series.`);
+                    console.log('[createLegend][Click][Timeout] Hiding linked fill series.'); // Simple string
                     fillSeriesToToggle.hide();
                  } else {
-                    console.log(`[createLegend][Click][Timeout] Showing linked fill series.`);
+                    console.log('[createLegend][Click][Timeout] Showing linked fill series.'); // Simple string
                     fillSeriesToToggle.show();
                  }
             }, 0);
         } else {
-            console.log(`[createLegend][Click] Clicked item "${clickedSeriesName}" is not the main line series, default toggle applies.`);
+            // Using template literal here is fine
+            console.log(\`[createLegend][Click] Clicked item "\${clickedSeriesName}" is not the main line series, default toggle applies.\`);
         }
      });
 
@@ -438,6 +465,7 @@ am5.ready(function() {
    }
 
   // --- Final Chart Configuration ---
+  // (Code remains the same)
   function configureChart(chart, root, yAxis, xAxis, label) {
       console.log("[configureChart] Start.");
       console.log("[configureChart] Creating XYCursor...");
@@ -508,7 +536,7 @@ am5.ready(function() {
 </script>
 
 </body>
-</html>`;
+</html>`; // End of the main 'ht' template literal
 
   // --- Encode and Return URI ---
   console.log("[window.function] Encoding HTML and creating data URI...");
