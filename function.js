@@ -90,7 +90,6 @@ am5.ready(function() {
   console.log("Root created.");
 
   // --- Data Parsing Function ---
-  // *** REMOVED item.valueOpen = 0; ***
   function parseChartData(primaryStr, overlayStr) {
      console.log("--- Starting parseChartData ---");
      let primaryData = [];
@@ -183,7 +182,7 @@ am5.ready(function() {
   }
 
 
-  // --- Chart and Axes Creation --- (Keeping forceZero: true)
+  // --- Chart and Axes Creation ---
   function createChartAndAxes(root, xAxisData) {
     console.log("--- Starting createChartAndAxes ---");
     var chart = root.container.children.push(am5xy.XYChart.new(root, { panX: true, panY: true, wheelX: "panX", wheelY: "zoomX", layout: root.verticalLayout, pinchZoomX: true }));
@@ -195,8 +194,7 @@ am5.ready(function() {
     } else { console.log("WARNING: X-Axis has no data categories."); }
     var yRenderer = am5xy.AxisRendererY.new(root, {});
     var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { maxPrecision: 2, renderer: yRenderer }));
-    // Keep forceZero: true - crucial for standard fill-to-zero behaviour
-    yAxis.set("forceZero", true);
+    yAxis.set("forceZero", true); // Keep forceZero: true for standard fill
     console.log("Y-Axis forceZero set to true.");
     console.log("--- Finished createChartAndAxes ---");
     return { chart, xAxis, yAxis };
@@ -204,8 +202,6 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** REMOVED openValueYField, relying on fill/fillOpacity/forceZero ***
-  // *** ENSURED labelTextColor is white for valueAreaSeries tooltip ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("--- Starting createPrimarySeries ---");
     let valueAreaSeries, value2Series;
@@ -218,23 +214,24 @@ am5.ready(function() {
       yAxis: yAxis,
       valueYField: "value",
       categoryXField: "time",
-      // openValueYField REMOVED - using standard fill mechanism
       stroke: am5.color(primaryOutlineColor),
-      fill: am5.color(primaryFillColor), // Set fill color
-      fillOpacity: 0.8,                  // Set fill opacity > 0
+      fill: am5.color(primaryFillColor),
+      fillOpacity: 0.8,
       connect: false,
       toggleable: true,
       tooltip: am5.Tooltip.new(root, {
-          pointerOrientation: "horizontal", getFillFromSprite: false,
-          getStrokeFromSprite: true,
-          labelTextColor: whiteColor, // *** Set label text to white ***
-          background: am5.RoundedRectangle.new(root, { fill: am5.color(primaryOutlineColor), fillOpacity: 0.9 }),
-          fontSize: tooltipFontSize, labelText: intervalName + ": {valueY.formatNumber('#.00')}"
+          pointerOrientation: "horizontal",
+          getFillFromSprite: false, // Use explicit background fill
+          getStrokeFromSprite: true, // Use series stroke for border
+          labelTextColor: whiteColor, // <<< --- SET TOOLTIP TEXT TO WHITE ---
+          background: am5.RoundedRectangle.new(root, { fill: am5.color(primaryOutlineColor), fillOpacity: 0.9 }), // Dark blue background
+          fontSize: tooltipFontSize,
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}"
       })
     }));
     valueAreaSeries.strokes.template.set("strokeWidth", 2);
     console.log("Setting data for Value Area series. Item count:", primaryData.length);
-    valueAreaSeries.data.setAll(primaryData); // Data no longer has valueOpen
+    valueAreaSeries.data.setAll(primaryData);
     valueAreaSeries.appear(1000);
     console.log("Value Area series created. Fill opacity:", valueAreaSeries.get("fillOpacity"), "Fill color:", valueAreaSeries.get("fill")?.toCSSHex());
 
@@ -246,7 +243,8 @@ am5.ready(function() {
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
       toggleable: true,
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: true, labelTextColor: whiteColor,
+          getFillFromSprite: true, // Uses column fill color for background
+          labelTextColor: whiteColor, // Text is already white here
           fontSize: tooltipFontSize, labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
       })
     }));
@@ -271,7 +269,7 @@ am5.ready(function() {
   }
 
 
-  // --- Overlay Series Creation --- (Keep tooltip fixes)
+  // --- Overlay Series Creation ---
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
     console.log("--- Starting createOverlaySeries ---");
     let overlaySeriesList = [];
@@ -288,7 +286,7 @@ am5.ready(function() {
               stroke: seriesColor, connect: false,
               tooltip: am5.Tooltip.new(root, { // Tooltip background matches line, text is white
                 pointerOrientation: "horizontal", getStrokeFromSprite: true,
-                labelTextColor: whiteColor,
+                labelTextColor: whiteColor, // Text is already white here
                 background: am5.RoundedRectangle.new(root, { fill: seriesColor, fillOpacity: 0.9 }),
                 fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}"
               })
@@ -364,7 +362,6 @@ am5.ready(function() {
   }
   const xAxisData = prepareAxisCategories(primaryData);
   const { chart, xAxis, yAxis } = createChartAndAxes(root, xAxisData);
-  // Create primary series using standard fill approach
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
   createLegend(chart, root, primarySeriesRefs.valueArea, primarySeriesRefs.bars, overlaySeries);
