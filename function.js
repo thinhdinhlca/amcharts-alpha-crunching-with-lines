@@ -93,7 +93,7 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Value2 Bars NOT directly toggleable ***
+  // *** MODIFIED: Value2 Bars ARE toggleable again ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
 
@@ -101,20 +101,20 @@ am5.ready(function() {
 
     // 1. Area Fill Series (Light Blue Columns, No Tooltip, No Toggle)
     fillSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-        name: intervalName + " (Fill)", // Internal name
+        name: intervalName + " (Fill)", // Internal name only
         xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
         fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100),
-        toggleable: false, // Cannot be turned off directly
+        toggleable: false, // Cannot be turned off directly via legend
     }));
     fillSeries.data.setAll(primaryData);
     fillSeries.appear(1000);
 
 
-    // 2. Value2 Bar Series (Red/Green, Tooltip, NOT Toggleable in Legend)
+    // 2. Value2 Bar Series (Red/Green, Tooltip, IS Toggleable in Legend)
     value2Series = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: intervalName + " (Cumulative)", // Descriptive name, but won't appear in legend
+      name: intervalName + " (Cumulative)", // Name that WILL appear in legend
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
-      toggleable: false, // *** CHANGE: Make this false ***
+      toggleable: true, // *** CHANGE: Make this true again ***
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: true, labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize,
           labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
@@ -129,13 +129,13 @@ am5.ready(function() {
 
 
     // 3. Area Line Series (Dark Blue Outline, Tooltip, IS Toggleable)
-    // *** This one controls the legend and toggles the fill AND bar series ***
+    // *** This one controls the legend AND toggles the fill series ***
     lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
       name: intervalName, // Main name for the legend
       xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
       stroke: am5.color(primaryOutlineColor), fillOpacity: 0,
       connect: false,
-      // toggleable: true, // Default is true
+      toggleable: true, // Default is true, appears in legend
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: true,
           labelTextColor: am5.color(0xffffff), fontSize: tooltipFontSize,
@@ -159,32 +159,28 @@ am5.ready(function() {
    }
 
   // --- Legend Creation & Linking ---
-  // *** MODIFIED: Legend data excludes bars, event listener toggles bars ***
-  function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeriesToToggle, otherSeries) {
+  // *** MODIFIED: Legend includes bars, event listener ONLY links line & fill ***
+  function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
      // Combine series for the legend DATA
-     // *** CHANGE: Only include main line and overlays in legend data ***
-     const legendSeries = [mainLineSeries, ...otherSeries];
+     // *** CHANGE: Include main line, BARS, and overlays in legend data ***
+     const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
 
      if (legendSeries.length === 0) { console.log("Skipping legend (no series)."); return null; }
 
      // console.log("Creating legend for", legendSeries.length, "toggleable series...");
-     // Create a container for the legend and the hint label
+     // Create container for legend and hint (unchanged)
      var legendContainer = chart.children.push(am5.Container.new(root, {
         width: am5.percent(100),
         layout: root.verticalLayout,
         x: am5.p50, centerX: am5.p50,
         paddingBottom: 10
      }));
-
-     // Create the legend
      var legend = legendContainer.children.push(am5.Legend.new(root, {
          x: am5.percent(50), centerX: am5.percent(50),
          layout: root.horizontalLayout,
          marginTop: 5,
          marginBottom: 5
      }));
-
-     // Add hint label below legend (unchanged)
      legendContainer.children.push(am5.Label.new(root, {
          text: "(Click legend items to toggle visibility)",
          fontSize: "0.75em",
@@ -192,8 +188,7 @@ am5.ready(function() {
          x: am5.p50, centerX: am5.p50
      }));
 
-
-     // Set data for the legend (now excludes bars series)
+     // Set data for the legend (now includes bars series)
      legend.data.setAll(legendSeries);
 
      // Add event listener AFTER data is set for synchronized toggle
@@ -207,15 +202,15 @@ am5.ready(function() {
 
                  if (isHidden) {
                     fillSeriesToToggle.hide(); // Hide fill if line is hidden
-                    barsSeriesToToggle.hide(); // *** ALSO hide bars if line is hidden ***
+                    // *** DO NOT touch barsSeries here ***
                  } else {
                     fillSeriesToToggle.show(); // Show fill if line is shown
-                    barsSeriesToToggle.show(); // *** ALSO show bars if line is shown ***
+                    // *** DO NOT touch barsSeries here ***
                  }
             }, 0); // Timeout ensures default toggle action has completed
         }
-        // Note: Clicks on overlay series legend items will just toggle those lines,
-        // as their dataContext won't match mainLineSeries.
+        // Clicks on other legend items (barsSeries, overlaySeries)
+        // will trigger their default toggle behavior.
      });
 
      // console.log("Legend created and toggle listener attached.");
@@ -245,7 +240,7 @@ am5.ready(function() {
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
   // *** Create legend, passing all necessary references ***
-  // Note the barsSeriesToToggle parameter is now used in the listener
+  // The listener will now correctly handle the different toggle behaviours
   createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
 
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
