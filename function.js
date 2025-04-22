@@ -93,7 +93,7 @@ am5.ready(function() {
   console.log("Root created.");
 
   // --- Data Parsing Function ---
-  // *** Corrected console.warn syntax & added more logs ***
+  // *** REVERTED console calls to basic comma-separated arguments ***
   function parseChartData(primaryStr, overlayStr) {
      console.log("--- Starting parseChartData ---");
      let primaryData = [];
@@ -110,12 +110,14 @@ am5.ready(function() {
              primaryData = rawPrimary.map((item, index) => {
                  // Basic validation
                  if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) {
-                      console.warn(`Primary data item at index ${index} is invalid or missing required fields (time, value):`, item);
+                      // *** USE BASIC CONSOLE.LOG ***
+                      console.log("Primary data item at index", index, "is invalid or missing required fields (time, value):", item);
                      return null;
                  }
                  // Ensure value2 is a number if present
                  if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') {
-                      console.warn(`Primary data item at index ${index} has non-numeric value2, removing it:`, item);
+                      // *** USE BASIC CONSOLE.LOG ***
+                      console.log("Primary data item at index", index, "has non-numeric value2, removing it:", item);
                      delete item.value2;
                  }
                  // Add baseline field for zero-based fill
@@ -125,7 +127,7 @@ am5.ready(function() {
              console.log("Primary data processed, filtered, and valueOpen added. Resulting array length:", primaryData.length);
              // console.log("Final processed primary data:", JSON.stringify(primaryData)); // Optional: Log full data (can be large)
          } else {
-             console.warn("Parsed primary data is not an array. primaryData will be empty.");
+             console.log("WARNING: Parsed primary data is not an array. primaryData will be empty."); // Changed warn to log
          }
      } catch (e) {
          console.error("Error parsing primary data JSON inside parseChartData:", e);
@@ -145,28 +147,29 @@ am5.ready(function() {
                  let validKeys = 0;
                  for (const key in rawOverlay) {
                      if (Object.hasOwnProperty.call(rawOverlay, key)) {
-                          console.log(`Processing overlay key: "${key}"`);
+                          console.log("Processing overlay key:", key); // Simplified log
                          const weekDataRaw = rawOverlay[key];
                          if(Array.isArray(weekDataRaw)) {
-                             console.log(`Data for key "${key}" is an array. Filtering items...`);
+                             console.log("Data for key", key, "is an array. Filtering items..."); // Simplified log
                              const processedWeekData = weekDataRaw.filter(item => {
                                 const isValid = item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number';
                                 if (!isValid) {
-                                    console.warn(`Invalid item found in overlay data for key "${key}":`, item);
+                                    // *** USE BASIC CONSOLE.LOG ***
+                                    console.log("Invalid item found in overlay data for key", key, ":", item);
                                 }
                                 return isValid;
                              });
                              if (processedWeekData.length > 0) {
                                  parsedOverlayData[key] = processedWeekData;
                                  validKeys++;
-                                 console.log(`Key "${key}" has ${processedWeekData.length} valid items after filtering.`);
+                                 console.log("Key", key, "has", processedWeekData.length, "valid items after filtering."); // Simplified log
                              } else {
-                                 // *** CORRECTED SYNTAX using template literal ***
-                                 console.warn(`Overlay data for key "${key}" had no valid items after filtering.`);
+                                 // *** USE BASIC CONSOLE.LOG ***
+                                 console.log("Overlay data for key", key, "had no valid items after filtering.");
                              }
                          } else {
-                              // *** CORRECTED SYNTAX using template literal ***
-                             console.warn(`Overlay data for key "${key}" was not an array. Skipping.`);
+                              // *** USE BASIC CONSOLE.LOG ***
+                             console.log("Overlay data for key", key, "was not an array. Skipping.");
                          }
                      }
                  }
@@ -175,11 +178,11 @@ am5.ready(function() {
                      console.log("Overlay data parsed successfully. Valid keys with data:", validKeys);
                      // console.log("Final processed overlay data:", JSON.stringify(parsedOverlayData)); // Optional: Log full data
                  } else {
-                     console.warn("Overlay data parsed, but no valid keys/data found after processing.");
+                     console.log("WARNING: Overlay data parsed, but no valid keys/data found after processing."); // Changed warn to log
                      parsedOverlayData = null; // Ensure null if no valid data
                  }
              } else {
-                 console.warn("Parsed overlay data is not a valid object (expected non-array object). parsedOverlayData will be null.");
+                 console.log("WARNING: Parsed overlay data is not a valid object (expected non-array object). parsedOverlayData will be null."); // Changed warn to log
              }
          } else {
              console.log("No overlay data string provided or it's empty/'{}'. No overlay data to process.");
@@ -199,7 +202,7 @@ am5.ready(function() {
   function prepareAxisCategories(primaryData) {
      console.log("--- Starting prepareAxisCategories ---");
      if (!primaryData || primaryData.length === 0) {
-        console.warn("Primary data is empty for axis prep, axis will be empty.");
+        console.log("WARNING: Primary data is empty for axis prep, axis will be empty."); // Changed warn to log
         return [];
       }
       try {
@@ -230,7 +233,7 @@ am5.ready(function() {
         xAxis.data.setAll(xAxisData);
         console.log("Set", xAxisData.length, "categories on X-Axis.");
     } else {
-        console.warn("X-Axis has no data categories to set.");
+        console.log("WARNING: X-Axis has no data categories to set."); // Changed warn to log
     }
     var yRenderer = am5xy.AxisRendererY.new(root, {});
     var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { maxPrecision: 2, renderer: yRenderer }));
@@ -331,7 +334,7 @@ am5.ready(function() {
        for (const weekKey in overlayData) {
          if (Object.hasOwnProperty.call(overlayData, weekKey)) {
            const weekData = overlayData[weekKey];
-           console.log(`Creating LineSeries for overlay key: "${weekKey}" with ${weekData.length} items.`);
+           console.log("Creating LineSeries for overlay key:", weekKey, "with", weekData.length, "items."); // Simplified log
            var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
                name: weekKey,
                xAxis: xAxis,
@@ -449,7 +452,7 @@ am5.ready(function() {
 
   // Check if primary data exists before proceeding
   if (!primaryData || primaryData.length === 0) {
-    console.warn("No valid primary data to display after parsing. Chart generation stopped.");
+    console.log("WARNING: No valid primary data to display after parsing. Chart generation stopped."); // Changed warn to log
     // Display a message in the chart div
     try {
         document.getElementById('chartdiv').innerHTML = '<p style="text-align: center; padding: 20px; color: grey;">No valid primary data available to display the chart.</p>';
