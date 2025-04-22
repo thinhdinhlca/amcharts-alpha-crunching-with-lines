@@ -163,7 +163,6 @@ am5.ready(function() {
     // Create X Axis (Category)
     var xRenderer = am5xy.AxisRendererX.new(root, {
       minGridDistance: 60, // Adjust spacing
-      // minorGridEnabled: true // Optional: adds minor grid lines
     });
     // Improve label appearance
     xRenderer.labels.template.setAll({
@@ -184,7 +183,6 @@ am5.ready(function() {
     } else {
         console.warn("X-Axis has no data categories to display.");
     }
-
 
     // Create Y Axis (Value)
     var yRenderer = am5xy.AxisRendererY.new(root, {});
@@ -207,8 +205,8 @@ am5.ready(function() {
       yAxis: yAxis,
       valueYField: "value",
       categoryXField: "time",
-      stroke: am5.color(0x095256), // Example color
-      fill: am5.color(0x095256), // Example color
+      stroke: am5.color(primaryData[0]?.strokeSettings?.stroke || 0x095256), // Default color if undefined
+      fill: am5.color(primaryData[0]?.strokeSettings?.stroke || 0x095256),
       fillOpacity: 0.3,
       tooltip: am5.Tooltip.new(root, {
         labelText: "{name}: {valueY.formatNumber('#.00')}"
@@ -238,7 +236,6 @@ am5.ready(function() {
     columnSeries.data.setAll(primaryData);
     columnSeries.hide(0); // Start hidden
     columnSeries.appear(1000);
-
 
     console.log("Primary series created.");
     return [areaSeries, columnSeries]; // Return both for legend
@@ -277,7 +274,7 @@ am5.ready(function() {
             categoryXField: "time",
             stroke: am5.color(seriesColor),
             tooltip: am5.Tooltip.new(root, {
-              labelText: \`{name}: {valueY.formatNumber('#.00')}\`
+              labelText: `{name}: {valueY.formatNumber('#.00')}`
             }),
             connect: false // Do not connect gaps in data
           }));
@@ -387,7 +384,6 @@ am5.ready(function() {
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
 
   console.log("--- Chart Build Process Complete ---");
-
 
 }); // end am5.ready()
 </script>
