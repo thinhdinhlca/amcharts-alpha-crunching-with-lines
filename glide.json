@@ -15,6 +15,11 @@
       "type": "string"
     },
     {
+      "name": "intervalName",
+      "displayName": "Interval Name",
+      "type": "string"
+    },
+    {
       "name": "width",
       "displayName": "Width (default: 100%)",
       "type": "number"
@@ -28,12 +33,6 @@
       "name": "type",
       "displayName": "Ticker Symbol (e.g., SPX)",
       "type": "string"
-    },
-    {
-      "name": "intervalName",
-      "displayName": "Interval/Cumulative Series Name",
-      "type": "string",
-      "defaultValue": "Cumulative" // Added a default value
     }
   ],
   "result": {
