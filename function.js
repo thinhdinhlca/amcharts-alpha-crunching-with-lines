@@ -83,22 +83,24 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation ---
-  // *** MODIFIED: Column strokeWidth/width, Line tooltip text ***
+  // *** MODIFIED: Column widths/strokes, Tooltip text ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
 
-    // 1. Area Fill Series (Light Blue Columns, No Tooltip, No Toggle)
+    // 1. Area Fill Series (Light Blue Columns, 100% width, No Tooltip, No Toggle)
     var areaFillSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
         name: intervalName + " (Area Base)",
         xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
-        fill: am5.color(primaryFillColor), strokeOpacity: 0, toggleable: false,
+        fill: am5.color(primaryFillColor),
+        strokeOpacity: 0,         // No border between area fill bars
+        width: am5.percent(100),  // *** Make bars touch for area look ***
+        toggleable: false,
     }));
-    areaFillSeries.columns.template.setAll({ width: am5.percent(100) });
     areaFillSeries.data.setAll(primaryData);
     areaFillSeries.appear(1000);
 
 
-    // 2. Value2 Bar Series (Red/Green, Tooltip, No Toggle)
+    // 2. Value2 Bar Series (Red/Green, Tooltip, No Toggle, Width 60%, Stroke 2)
     var value2BarSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
       name: intervalName + " (Cumulative)",
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
@@ -107,22 +109,23 @@ am5.ready(function() {
           getFillFromSprite: true,
           labelTextColor: am5.color(0xffffff),
           fontSize: tooltipFontSize,
-          labelText: "Cumulative: {valueY.formatNumber('#.##')}"
+          // *** Use intervalName in Tooltip ***
+          labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
       })
     }));
-    value2BarSeries.columns.template.adapters.add("fill", function(fill, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); /* Invisible if no value2 */ });
-    value2BarSeries.columns.template.adapters.add("stroke", function(stroke, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); /* Invisible if no value2 */ });
-    // *** Column Styling: strokeWidth = 5, width = 100% ***
+    value2BarSeries.columns.template.adapters.add("fill", function(fill, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); });
+    value2BarSeries.columns.template.adapters.add("stroke", function(stroke, target) { /* ... */ const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); });
+    // *** Column Styling: strokeWidth = 2, width = 60% ***
     value2BarSeries.columns.template.setAll({
-      strokeWidth: 5,      // Set stroke width
-      strokeOpacity: 1,    // Make stroke visible
-      width: am5.percent(100) // Set width to 100%
+      strokeWidth: 2,
+      strokeOpacity: 1,
+      width: am5.percent(60) // Standard width for distinct bars
     });
     value2BarSeries.data.setAll(primaryData);
     value2BarSeries.appear(1000);
 
 
-    // 3. Area Line Series (Dark Blue Outline, Tooltip, No Toggle)
+    // 3. Area Line Series (Dark Blue Outline, Tooltip uses intervalName, No Toggle)
     var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
       name: intervalName, // Use intervalName from input
       xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
@@ -132,7 +135,6 @@ am5.ready(function() {
           getFillFromSprite: true, // Background matches line stroke
           labelTextColor: am5.color(0xffffff),
           fontSize: tooltipFontSize,
-          // *** MODIFIED TOOLTIP TEXT ***
           labelText: intervalName + ": {valueY.formatNumber('#.00')}" // Use intervalName: Value
       })
     }));
