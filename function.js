@@ -1,311 +1,235 @@
 window.function = function (data, overlayDataJson, width, height, type) {
 
-  let dataStringValue = data.value ?? '[]';
-  let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
-  let chartWidth = width.value ?? 100;
-  let chartHeight = height.value ?? 500;
-  let chartTypeLabel = type.value ?? "Value";
+  data = data.value ?? "";
+  overlayDataJson = overlayDataJson.value ?? null;
+  width = width.value ?? 100;
+  height = height.value ?? 500;
+  type = type.value ?? "SPX";
 
-  let ht = `
-<!DOCTYPE html>
+  let ht = `<!DOCTYPE html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Glide Yes-Code Chart</title>
-  <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
-  <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      width: 100%;
-    }
-    #chartdiv {
-      width: ${chartWidth}%;
-      height: ${chartHeight}px;
-    }
-  </style>
-</head>
-<body>
+  <head>
+    <meta charset="utf-8">
+    <title>Glide Yes-Code</title>
+    <script src="https://cdn.amcharts.com/lib/5/index.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
+    <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
+  </head>
+  <body>
   <div id="chartdiv"></div>
 
-<script>
-am5.ready(function() {
+  <style>
+    #chartdiv {
+      width: ${width}%;
+      height: ${height}px;
+    }
+  </style>
 
-  const primaryDataString = ${JSON.stringify(dataStringValue)};
-  const overlayString = ${JSON.stringify(overlayDataJsonStringValue)};
-  const chartTypeLabel = ${JSON.stringify(chartTypeLabel)};
-  const overlayColors = {
+<script>
+var root = am5.Root.new("chartdiv");
+
+root.setThemes([
+  am5themes_Animated.new(root)
+]);
+
+var chart = root.container.children.push(am5xy.XYChart.new(root, {
+  panX: true,
+  panY: true,
+  wheelX: "panX",
+  wheelY: "zoomX",
+  layout: root.verticalLayout,
+  pinchZoomX:true
+}));
+
+var cursor = chart.set("cursor", am5xy.XYCursor.new(root, {
+  behavior: "none"
+}));
+cursor.lineY.set("visible", false);
+
+var colorSet = am5.ColorSet.new(root, {colors: ["#FF0000", "#00008B", "#006400", "#FFDF00", "#FF8C00","#06038D"]});
+
+var data = [ ${data} ];
+
+var xRenderer = am5xy.AxisRendererX.new(root, {});
+xRenderer.grid.template.set("location", 0.5);
+xRenderer.labels.template.setAll({
+  dy: 20,
+  fontSize: 8,
+  location: 0.5,
+  rotation: -90,
+  multiLocation: 0.5
+});
+
+var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
+  categoryField: "time",
+  renderer: xRenderer,
+  paddingRight: 5,
+  tooltip: am5.Tooltip.new(root, {})
+}));
+
+xAxis.data.setAll(data);
+
+var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
+  maxPrecision: 0,
+  renderer: am5xy.AxisRendererY.new(root, {})
+}));
+
+var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
+  name: "Selected Week",
+  xAxis: xAxis,
+  yAxis: yAxis,
+  valueYField: "value",
+  categoryXField: "time",
+  tooltip: am5.Tooltip.new(root, {
+    labelText: "{valueY.formatNumber('#.00')}",
+    dy:-5
+  })
+}));
+
+areaSeries.strokes.template.setAll({
+  templateField: "strokeSettings",
+  strokeWidth: 2
+});
+
+areaSeries.fills.template.setAll({
+  visible: true,
+  fillOpacity: 0.5,
+  templateField: "fillSettings"
+});
+
+areaSeries.bullets.push(function() {
+  return am5.Bullet.new(root, {
+    sprite: am5.Circle.new(root, {
+      templateField: "bulletSettings",
+      radius: 5
+    })
+  });
+});
+
+areaSeries.data.setAll(data);
+areaSeries.appear(1000);
+
+var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
+  name: "Selected Week (Interval)",
+  xAxis: xAxis,
+  yAxis: yAxis,
+  valueYField: "value2",
+  categoryXField: "time",
+  fill: am5.color("#023020"),
+  stroke: am5.color("#023020"),
+  tooltip: am5.Tooltip.new(root, {
+    labelText: "Interval: {valueY.formatNumber('#.00')}",
+    dy:-10
+  })
+}));
+
+columnSeries.columns.template.adapters.add("fill", function(fill, target) {
+  if (target.dataItem && target.dataItem.get("valueY") < 0) {
+    return am5.color("#8B0000");
+  }
+  else {
+    return fill;
+  }
+});
+
+columnSeries.columns.template.adapters.add("stroke", function(stroke, target) {
+  if (target.dataItem && target.dataItem.get("valueY") < 0) {
+    return am5.color("#8B0000");
+  }
+  else {
+    return stroke;
+  }
+});
+
+columnSeries.columns.template.setAll({
+  fillOpacity: 1,
+  strokeWidth: 2,
+  cornerRadiusTL: 5,
+  cornerRadiusTR: 5
+});
+
+columnSeries.data.setAll(data);
+columnSeries.appear(1000);
+columnSeries.hide(0);
+
+
+const overlayColors = {
     "This Week": "#228B22",
     "Last Week": "#FFA500",
     "2 Weeks Ago": "#800080",
-    "3 Weeks Ago": "#DC143C",
-  };
+    "3 Weeks Ago": "#DC143C"
+};
 
-  var root = am5.Root.new("chartdiv");
-  root.setThemes([am5themes_Animated.new(root)]);
-
-  function parseChartData(primaryStr, overlayStr) {
-    let primaryData = [];
-    let parsedOverlayData = null;
-    let hasValidOverlay = false;
-
+if (overlayDataJson && overlayDataJson.trim() !== "" && overlayDataJson.trim() !== "{}") {
     try {
-      primaryData = JSON.parse(primaryStr);
-      if (!Array.isArray(primaryData)) {
-        primaryData = [];
-      }
-      primaryData = primaryData.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && item.hasOwnProperty('value'));
-    } catch (e) {
-      primaryData = [];
-    }
+        let overlayData = JSON.parse(overlayDataJson);
+        let overlayKeys = Object.keys(overlayData);
 
-    try {
-      if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") {
-        parsedOverlayData = JSON.parse(overlayStr);
-        if (typeof parsedOverlayData === 'object' && parsedOverlayData !== null && !Array.isArray(parsedOverlayData)) {
-          let validKeys = 0;
-          for (const key in parsedOverlayData) {
-            if (Object.hasOwnProperty.call(parsedOverlayData, key)) {
-              const weekData = parsedOverlayData[key];
-              if (Array.isArray(weekData) && weekData.every(item => item && typeof item === 'object' && item.hasOwnProperty('time') && item.hasOwnProperty('value'))) {
-                validKeys++;
-              } else {
-                delete parsedOverlayData[key];
-              }
+        overlayKeys.forEach(function(weekKey) {
+            let weekData = overlayData[weekKey];
+
+            if (weekData && weekData.length > 0) {
+                var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
+                    name: weekKey,
+                    xAxis: xAxis,
+                    yAxis: yAxis,
+                    valueYField: "value",
+                    categoryXField: "time",
+                    stroke: am5.color(overlayColors[weekKey] || "#888888"),
+                    strokeWidth: 2,
+                    tooltip: am5.Tooltip.new(root, {
+                        labelText: "{name}: {valueY.formatNumber('#.00')}"
+                    })
+                }));
+
+                lineSeries.data.setAll(weekData);
+                lineSeries.appear(1000);
             }
-          }
-          if (validKeys > 0) {
-            hasValidOverlay = true;
-          } else {
-            parsedOverlayData = null;
-          }
-        } else {
-          parsedOverlayData = null;
-        }
-      }
-    } catch (e) {
-      parsedOverlayData = null;
-    }
-
-    return { primaryData, parsedOverlayData, hasValidOverlay };
-  }
-
-  function prepareAxisCategories(primaryData, overlayData) {
-    let allDataForAxis = [...primaryData];
-    if (overlayData) {
-      try {
-        Object.values(overlayData).forEach(weekArray => {
-          if (Array.isArray(weekArray)) {
-            allDataForAxis.push(...weekArray);
-          }
         });
-      } catch(e) {}
+
+         chart.set("legend", am5.Legend.new(root, {
+             x: am5.percent(50),
+             centerX: am5.percent(50),
+             layout: root.horizontalLayout,
+             marginBottom: 15
+         }));
+
+    } catch (e) {
+        console.error("Error parsing or processing overlay JSON:", e);
     }
+}
 
-    let uniqueTimes = [...new Set(allDataForAxis.map(item => item?.time).filter(time => time !== undefined && time !== null && String(time).trim() !== ''))].sort();
-    let xAxisData = uniqueTimes.map(time => ({ time: time }));
-    return xAxisData;
-  }
+xAxis.children.push(
+  am5.Label.new(root, {
+    text: "Time of Day",
+    x: am5.p50,
+    centerX: am5.percent(50),
+    centerY: true
+  })
+);
 
-  function createChartAndAxes(root, xAxisData) {
-    var chart = root.container.children.push(am5xy.XYChart.new(root, {
-      panX: true,
-      panY: false,
-      wheelX: "panX",
-      wheelY: "zoomX",
-      layout: root.verticalLayout
-    }));
+yAxis.children.unshift(
+  am5.Label.new(root, {
+    rotation: -90,
+    text: \`Average \${type} Points\`,
+    y: am5.p50,
+    centerX: am5.p50
+  })
+);
 
-    var xRenderer = am5xy.AxisRendererX.new(root, {
-      minGridDistance: 60,
-    });
-    xRenderer.labels.template.setAll({
-        rotation: -45,
-        centerY: am5.p50,
-        centerX: am5.p100,
-        paddingRight: 10
-    });
+chart.set("scrollbarX", am5.Scrollbar.new(root, {
+  orientation: "horizontal",
+  marginBottom: 5
+}));
 
-    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
-      categoryField: "time",
-      renderer: xRenderer,
-      tooltip: am5.Tooltip.new(root, {})
-    }));
+chart.appear(1000, 100);
 
-    if (xAxisData.length > 0) {
-        xAxis.data.setAll(xAxisData);
-    }
-
-    var yRenderer = am5xy.AxisRendererY.new(root, {});
-    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
-      maxPrecision: 2,
-      renderer: yRenderer
-    }));
-
-    return { chart, xAxis, yAxis };
-  }
-
-  function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
-    var areaSeries = chart.series.push(am5xy.LineSeries.new(root, {
-      name: "Selected Week",
-      xAxis: xAxis,
-      yAxis: yAxis,
-      valueYField: "value",
-      categoryXField: "time",
-      stroke: am5.color(primaryData[0]?.strokeSettings?.stroke || 0x095256),
-      fill: am5.color(primaryData[0]?.strokeSettings?.stroke || 0x095256),
-      fillOpacity: 0.3,
-      tooltip: am5.Tooltip.new(root, {
-        labelText: "{name}: {valueY.formatNumber('#.00')}"
-      }),
-      connect: false
-    }));
-    areaSeries.strokes.template.set("strokeWidth", 2);
-    areaSeries.fills.template.set("visible", true);
-    areaSeries.data.setAll(primaryData);
-    areaSeries.appear(1000);
-
-    var columnSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: "Selected Week (Interval)",
-      xAxis: xAxis,
-      yAxis: yAxis,
-      valueYField: "value",
-      categoryXField: "time",
-      fill: am5.color(0x095256),
-      stroke: am5.color(0x095256),
-      opacity: 0.7,
-      tooltip: am5.Tooltip.new(root, {
-        labelText: "{name}: {valueY.formatNumber('#.00')}"
-      }),
-    }));
-    columnSeries.columns.template.set("width", am5.percent(60));
-    columnSeries.data.setAll(primaryData);
-    columnSeries.hide(0);
-    columnSeries.appear(1000);
-
-    return [areaSeries, columnSeries];
-  }
-
-  function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
-    let overlaySeriesList = [];
-    if (!overlayData) {
-      return overlaySeriesList;
-    }
-
-    let colorIndex = 0;
-
-    try {
-      for (const weekKey in overlayData) {
-        if (Object.hasOwnProperty.call(overlayData, weekKey)) {
-          const weekData = overlayData[weekKey];
-          let seriesColor = colors[weekKey];
-          if (!seriesColor) {
-            seriesColor = root.interfaceColors.get("grid");
-          }
-
-          var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-            name: weekKey,
-            xAxis: xAxis,
-            yAxis: yAxis,
-            valueYField: "value",
-            categoryXField: "time",
-            stroke: am5.color(seriesColor),
-            tooltip: am5.Tooltip.new(root, {
-              labelText: `{name}: {valueY.formatNumber('#.00')}`
-            }),
-            connect: false
-          }));
-          lineSeries.strokes.template.set("strokeWidth", 2);
-          lineSeries.data.setAll(weekData);
-          lineSeries.appear(1000);
-          overlaySeriesList.push(lineSeries);
-        }
-      }
-    } catch (e) {}
-
-    return overlaySeriesList;
-  }
-
-  function createLegend(chart, root, seriesList) {
-    if (!seriesList || seriesList.length <= 2) {
-      return null;
-    }
-
-    var legend = chart.children.push(am5.Legend.new(root, {
-      centerX: am5.p50,
-      x: am5.p50,
-      marginTop: 15,
-      marginBottom: 15,
-    }));
-
-    legend.itemContainers.template.setAll({
-        paddingTop: 5,
-        paddingBottom: 5
-    });
-
-    legend.itemContainers.template.set("toggleOnClick", true);
-
-    legend.data.setAll(seriesList);
-    return legend;
-  }
-
-  function configureChart(chart, root, yAxis, xAxis, label) {
-    chart.set("cursor", am5xy.XYCursor.new(root, {
-      behavior: "zoomX",
-      xAxis: xAxis
-    }));
-
-    yAxis.children.unshift(am5.Label.new(root, {
-      rotation: -90,
-      text: \`Average \${label} Points\`,
-      y: am5.p50,
-      centerX: am5.p50,
-      paddingBottom: 10
-    }));
-
-    xAxis.children.push(am5.Label.new(root, {
-      text: "Time of Day",
-      x: am5.p50,
-      centerX: am5.p50,
-      paddingTop: 10
-    }));
-
-    chart.set("scrollbarX", am5.Scrollbar.new(root, {
-      orientation: "horizontal",
-    }));
-
-    chart.appear(1000, 100);
-  }
-
-  console.log("--- Starting Chart Build Process ---");
-
-  const { primaryData, parsedOverlayData, hasValidOverlay } = parseChartData(primaryDataString, overlayString);
-
-  const xAxisData = prepareAxisCategories(primaryData, parsedOverlayData);
-
-  const { chart, xAxis, yAxis } = createChartAndAxes(root, xAxisData);
-
-  const primarySeries = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
-
-  const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
-
-  const allSeriesForLegend = [...primarySeries, ...overlaySeries];
-  createLegend(chart, root, allSeriesForLegend);
-
-  configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
-
-  console.log("--- Chart Build Process Complete ---");
-
-}); 
 </script>
 
-</body>
+  </body>
 </html>`;
 
-  const encodedHtml = encodeURIComponent(ht);
-  const dataUri = `data:text/html;charset=utf-8,${encodedHtml}`;
-  return dataUri;
+  let enc = encodeURIComponent(ht);
+  let uri = `data:text/html;charset=utf-8,${enc}`;
+  return uri;
 }
