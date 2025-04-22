@@ -48,7 +48,7 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
     }
     /* Ensure white text globally for tooltips, important to override potential theme defaults */
     .am5-tooltip .am5-tooltip-label {
-        color: #ffffff !important;
+        color: #ffffff !important; /* Use !important to ensure override */
     }
   </style>
 </head>
@@ -98,7 +98,7 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation (Value2 Bars toggleable) ---
-  // *** MODIFIED: Ensured white text color for primary tooltips (already correct) ***
+  // *** MODIFIED: Re-verified explicit white text color for primary line tooltip ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
     let lineSeries, fillSeries, value2Series;
@@ -119,7 +119,7 @@ am5.ready(function() {
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false,
-          labelTextColor: am5.color(whiteColor), // *** Explicitly white text ***
+          labelTextColor: am5.color(whiteColor), // Explicitly white text
           fontSize: tooltipFontSize,
           labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
       })
@@ -195,56 +195,66 @@ am5.ready(function() {
      return overlaySeriesList;
    }
 
-  // --- Legend Creation & Linking ---
-  // *** MODIFIED: Reverted to horizontal layout, removed container and flow layout specifics ***
-  function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
-     const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
-     if (legendSeries.length === 0) { /* console.log("Skipping legend (no series)."); */ return null; }
+   // --- Legend Creation & Linking ---
+   // *** MODIFIED: Reverted to flowLayout and container approach for wrapping legend ***
+   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
+      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
+      if (legendSeries.length === 0) { /* console.log("Skipping legend (no series)."); */ return null; }
 
-     // console.log("Creating legend for", legendSeries.length, "toggleable series...");
+      // console.log("Creating legend for", legendSeries.length, "toggleable series...");
 
-     // *** MODIFIED: Create legend directly on chart, use horizontal layout ***
-     var legend = chart.children.push(am5.Legend.new(root, {
-         centerX: am5.p50,
-         x: am5.p50,
-         layout: root.horizontalLayout, // *** MODIFIED: Use horizontal layout ***
-         marginTop: 15,
-         marginBottom: 15
-     }));
+      // *** MODIFIED: Create a container for the legend and the hint label ***
+      var legendContainer = chart.children.push(am5.Container.new(root, {
+         width: am5.percent(100),
+         layout: root.verticalLayout, // Arrange legend and hint vertically
+         x: am5.p50, centerX: am5.p50, // Center the container
+         paddingBottom: 10 // Add some space below
+      }));
 
-     // *** REMOVED: Padding specific to flow layout ***
-     // legend.itemContainers.template.setAll({ paddingRight: 10, paddingBottom: 5 });
+      // *** MODIFIED: Create the legend within the container, use flow layout ***
+      var legend = legendContainer.children.push(am5.Legend.new(root, {
+          x: am5.percent(50), centerX: am5.percent(50), // Center legend within container
+          layout: root.flowLayout, // *** MODIFIED: Use flow layout for wrapping ***
+          maxWidth: am5.percent(95), // Limit width to force wrap if needed
+          marginTop: 5,
+          marginBottom: 5 // Space between legend and hint
+      }));
 
-     // *** MODIFIED: Add hint label directly to chart, position below legend ***
-     chart.children.push(am5.Label.new(root, {
-         text: "(Click legend items to toggle visibility)",
-         fontSize: "0.75em",
-         fill: am5.color(0x888888),
-         centerX: am5.p50,
-         x: am5.p50,
-         paddingTop: (legend.height() > 30 ? legend.height() : 30) + 5 // Position below legend dynamically
-     }));
+      // *** MODIFIED: Add spacing between legend items for flow layout ***
+      legend.itemContainers.template.setAll({
+         paddingRight: 10, // Space to the right of each item
+         paddingBottom: 5   // Space below each item (especially useful when wrapping)
+      });
 
-     // Set data for the legend
-     legend.data.setAll(legendSeries);
+      // *** MODIFIED: Add hint label below legend within the container ***
+      legendContainer.children.push(am5.Label.new(root, {
+          text: "(Click legend items to toggle visibility)",
+          fontSize: "0.75em",
+          fill: am5.color(0x888888), // Grey color for hint
+          x: am5.p50, centerX: am5.p50 // Center hint text
+      }));
 
-     // Add event listener AFTER data is set for synchronized toggle
-     legend.itemContainers.template.events.on("click", function(ev) {
-        if (ev.target.dataItem?.dataContext === mainLineSeries) {
-            // Use setTimeout to ensure the visibility state has updated before checking
-            setTimeout(() => {
-                 if (mainLineSeries.isHidden() || !mainLineSeries.get("visible")) {
-                    fillSeriesToToggle.hide();
-                 } else {
-                    fillSeriesToToggle.show();
-                 }
-            }, 0);
-        }
-     });
+      // Set data for the legend
+      legend.data.setAll(legendSeries);
 
-     // console.log("Legend created and toggle listener attached.");
-     return legend;
-   }
+      // Add event listener AFTER data is set for synchronized toggle
+      legend.itemContainers.template.events.on("click", function(ev) {
+         if (ev.target.dataItem?.dataContext === mainLineSeries) {
+             // Use setTimeout to ensure the visibility state has updated before checking
+             setTimeout(() => {
+                  if (mainLineSeries.isHidden() || !mainLineSeries.get("visible")) {
+                     fillSeriesToToggle.hide();
+                  } else {
+                     fillSeriesToToggle.show();
+                  }
+             }, 0);
+         }
+      });
+
+      // console.log("Legend created and toggle listener attached.");
+      return legend;
+    }
+
 
   // --- Final Chart Configuration (Unchanged scrollbar) ---
   function configureChart(chart, root, yAxis, xAxis, label) {
@@ -264,8 +274,8 @@ am5.ready(function() {
          centerX: am5.percent(50),
          paddingTop: 10
      }));
-     // *** MODIFIED: Adjust scrollbar margin slightly to accommodate legend/hint ***
-     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 50 }));
+     // *** MODIFIED: Adjusted scrollbar margin back slightly, as legend is now above it ***
+     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 25 }));
      chart.appear(1000, 100);
      // console.log("Chart configured.");
   }
@@ -280,7 +290,7 @@ am5.ready(function() {
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
-  createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
+  createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries); // Call the reverted legend function
 
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
   // console.log("--- Chart Build Process Complete ---");
