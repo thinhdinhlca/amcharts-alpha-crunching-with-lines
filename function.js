@@ -47,12 +47,6 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
       /* Background color is handled explicitly per series */
       /* Text color is handled explicitly per series */
     }
-    /* --- REMOVED: Global white text override --- */
-    /*
-    .am5-tooltip .am5-tooltip-label {
-        color: #ffffff !important;
-    }
-    */
   </style>
 </head>
 <body>
@@ -69,6 +63,7 @@ am5.ready(function() {
   const intervalName = ${JSON.stringify(intervalNameValue)};
   const chartTypeLabel = ${JSON.stringify(chartTypeLabel)};
 
+  // *** MODIFIED: Ensured all colors are defined using hex strings ***
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C", "Default": "#888888" }; // Used for line color AND tooltip background
   const primaryOutlineColor = "#09077b"; // Used for line AND tooltip background
   const primaryFillColor = "#b6dbee"; // Used for fill only
@@ -76,8 +71,10 @@ am5.ready(function() {
   const positiveValue2Color = "#052f20";
   const negativeValue2Color = "#78080e";
   const tooltipFontSize = "0.8em";
-  const whiteColor = "#ffffff"; // Define white color constant for clarity
-  const blackColor = "#000000"; // Define black color constant for clarity
+  const whiteColorHex = "#ffffff"; // Define white color constant using hex
+  const blackColorHex = "#000000"; // Define black color constant using hex
+  const hintLabelColorHex = "#888888"; // Define hint label color using hex
+  const transparentWhiteHex = "#ffffff"; // Base color for transparent fill/stroke
 
   // --- Root Element and Theme ---
   var root = am5.Root.new("chartdiv");
@@ -102,7 +99,7 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation (Value2 Bars toggleable) ---
-  // *** MODIFIED: Ensured white text color for primary tooltips (already correct) ***
+  // *** MODIFIED: Use hex color codes ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
     let lineSeries, fillSeries, value2Series;
@@ -123,15 +120,15 @@ am5.ready(function() {
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false,
-          labelTextColor: am5.color(whiteColor), // *** Explicitly white text ***
+          labelTextColor: am5.color(whiteColorHex), // *** Use hex ***
           fontSize: tooltipFontSize,
           labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
       })
     }));
 
     value2Series.get("tooltip").get("background").set("fill", am5.color(primaryValue2TooltipBgColor));
-    value2Series.columns.template.adapters.add("fill", function(fill, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); });
-    value2Series.columns.template.adapters.add("stroke", function(stroke, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(0xffffff, 0); });
+    value2Series.columns.template.adapters.add("fill", function(fill, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); }); // *** Use hex ***
+    value2Series.columns.template.adapters.add("stroke", function(stroke, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); }); // *** Use hex ***
     value2Series.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(60) });
     value2Series.data.setAll(primaryData);
     value2Series.appear(1000); // Appear by default
@@ -144,7 +141,7 @@ am5.ready(function() {
       connect: false,
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false,
-          labelTextColor: am5.color(whiteColor), // *** Explicitly white text ***
+          labelTextColor: am5.color(whiteColorHex), // *** Use hex ***
           fontSize: tooltipFontSize,
           labelText: intervalName + ": {valueY.formatNumber('#.00')}"
       })
@@ -161,7 +158,7 @@ am5.ready(function() {
 
 
   // --- Overlay Series Creation ---
-  // *** MODIFIED: Set tooltip text color conditionally (black for Last Week, white otherwise) ***
+  // *** MODIFIED: Use hex color codes ***
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      let overlaySeriesList = []; if (!overlayData) { /* console.log("No valid overlay data provided."); */ return overlaySeriesList; }
      // console.log("Creating overlay series...");
@@ -170,9 +167,9 @@ am5.ready(function() {
          if (Object.hasOwnProperty.call(overlayData, weekKey)) {
            const weekData = overlayData[weekKey];
            const seriesColor = colors[weekKey] || colors["Default"]; // Use defined color or default
-           // *** MODIFIED: Determine tooltip text color based on weekKey ***
-           const tooltipTextColor = (weekKey === "Last Week") ? blackColor : whiteColor;
-           // console.log("Creating LineSeries for: " + weekKey + " with text color: " + tooltipTextColor);
+           // Determine tooltip text color based on weekKey
+           const tooltipTextColorHex = (weekKey === "Last Week") ? blackColorHex : whiteColorHex; // *** Use hex ***
+           // console.log("Creating LineSeries for: " + weekKey + " with text color: " + tooltipTextColorHex);
 
            var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
              name: weekKey,
@@ -184,7 +181,7 @@ am5.ready(function() {
              connect: false,
              tooltip: am5.Tooltip.new(root, {
                getFillFromSprite: false,
-               labelTextColor: am5.color(tooltipTextColor), // *** Use determined text color ***
+               labelTextColor: am5.color(tooltipTextColorHex), // *** Use determined hex text color ***
                fontSize: tooltipFontSize,
                labelText: "{name}: {valueY.formatNumber('#.00')}"
              })
@@ -203,7 +200,7 @@ am5.ready(function() {
    }
 
   // --- Legend Creation & Linking ---
-  // *** Reverted to horizontal layout ***
+  // *** MODIFIED: Use hex color codes ***
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) { /* console.log("Skipping legend (no series)."); */ return null; }
@@ -223,7 +220,7 @@ am5.ready(function() {
      let hintLabel = am5.Label.new(root, {
          text: "(Click legend items to toggle visibility)",
          fontSize: "0.75em",
-         fill: am5.color(0x888888),
+         fill: am5.color(hintLabelColorHex), // *** Use hex ***
          centerX: am5.p50,
          x: am5.p50,
          paddingTop: 5 // Initial padding
