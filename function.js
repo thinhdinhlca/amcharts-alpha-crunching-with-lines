@@ -130,6 +130,7 @@ am5.ready(function() {
                                  parsedOverlayData[key] = processedWeekData;
                                  validKeys++;
                              } else {
+                                 // Line 92 approx
                                  console.warn("Overlay data for key \"" + key + "\" had no valid items after filtering.");
                              }
                          } else {
@@ -165,11 +166,8 @@ am5.ready(function() {
      }
      try {
          // console.log("Preparing axis categories assuming input primary data is sorted.");
-         // Extract the 'time' field from each item in the primary data
          let categoryStrings = primaryData.map(item => item.time);
-         // Although the data is assumed sorted, ensure uniqueness for the axis categories
          let uniqueCategoryStrings = categoryStrings.filter((value, index, self) => self.indexOf(value) === index);
-         // Map unique strings back to the object structure amCharts expects for category data
          let xAxisData = uniqueCategoryStrings.map(timeStr => ({ time: timeStr }));
          // console.log("Axis categories prepared from primary data:", xAxisData.length);
          return xAxisData;
@@ -195,10 +193,9 @@ am5.ready(function() {
     var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, {
         categoryField: "time",
         renderer: xRenderer,
-        tooltip: am5.Tooltip.new(root, {}) // Basic tooltip for axis labels if needed
+        tooltip: am5.Tooltip.new(root, {})
     }));
 
-    // Set the category data on the axis
     if (xAxisData.length > 0) {
         xAxis.data.setAll(xAxisData);
         // console.log("Set", xAxisData.length, "categories on X-Axis.");
@@ -208,7 +205,7 @@ am5.ready(function() {
 
     var yRenderer = am5xy.AxisRendererY.new(root, {});
     var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, {
-        maxPrecision: 2, // Control number formatting precision
+        maxPrecision: 2,
         renderer: yRenderer
     }));
 
@@ -220,96 +217,63 @@ am5.ready(function() {
   // --- Primary Series Creation ---
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
-
     let lineSeries, fillSeries, value2Series;
 
-    // 1. Area Fill Series (Light Blue Columns, No Tooltip, No Toggle)
     fillSeries = chart.series.push(am5xy.ColumnSeries.new(root, {
-        name: intervalName + " (Fill)", // Internal name only
-        xAxis: xAxis,
-        yAxis: yAxis,
-        valueYField: "value",
-        categoryXField: "time",
-        fill: am5.color(primaryFillColor),
-        strokeOpacity: 0, // No outline for fill columns
-        width: am5.percent(100), // Fill the category width
-        toggleable: false, // Cannot be turned off directly via legend
+        name: intervalName + " (Fill)",
+        xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
+        fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100),
+        toggleable: false,
     }));
     fillSeries.data.setAll(primaryData);
-    fillSeries.appear(1000); // Animation
+    fillSeries.appear(1000);
 
-
-    // 2. Value2 Bar Series (Red/Green, Tooltip, IS Toggleable in Legend)
     value2Series = chart.series.push(am5xy.ColumnSeries.new(root, {
-      name: intervalName + " (Cumulative)", // Name that WILL appear in legend
-      xAxis: xAxis,
-      yAxis: yAxis,
-      valueYField: "value2",
-      categoryXField: "time",
-      toggleable: true, // *** IS toggleable via legend ***
+      name: intervalName + " (Cumulative)",
+      xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
+      toggleable: true,
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: false, // Use specific colors, not derived from column fill
-          labelTextColor: am5.color(0xffffff),
+          getFillFromSprite: false, labelTextColor: am5.color(0xffffff),
           fontSize: tooltipFontSize,
           labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
       })
     }));
-    // Adapters to dynamically set fill/stroke color based on value2
     value2Series.columns.template.adapters.add("fill", function(fill, target) {
         const v2 = target.dataItem?.get("valueY");
-        // Handle cases where value2 might be missing or non-numeric in the filtered data
-        return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0); // Transparent if invalid
+        return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0);
     });
     value2Series.columns.template.adapters.add("stroke", function(stroke, target) {
         const v2 = target.dataItem?.get("valueY");
-        return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0); // Transparent if invalid
+        return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0);
     });
-    value2Series.columns.template.setAll({
-        strokeWidth: 2,
-        strokeOpacity: 1,
-        width: am5.percent(60) // Bars are narrower than the fill
-    });
+    value2Series.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(60) });
     value2Series.data.setAll(primaryData);
-    value2Series.appear(1000); // Animation
+    value2Series.appear(1000);
 
-
-    // 3. Area Line Series (Dark Blue Outline, Tooltip, IS Toggleable)
-    // *** This one controls the legend AND toggles the fill series ***
     lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-      name: intervalName, // Main name for the legend
-      xAxis: xAxis,
-      yAxis: yAxis,
-      valueYField: "value",
-      categoryXField: "time",
-      stroke: am5.color(primaryOutlineColor),
-      fillOpacity: 0, // Line only, no fill under the line itself
-      connect: false, // Don't connect across missing data points
-      toggleable: true, // IS toggleable via legend
+      name: intervalName,
+      xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
+      stroke: am5.color(primaryOutlineColor), fillOpacity: 0, connect: false,
+      toggleable: true,
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: true, // Tooltip background matches line color
-          labelTextColor: am5.color(0xffffff),
+          getFillFromSprite: true, labelTextColor: am5.color(0xffffff),
           fontSize: tooltipFontSize,
-          labelText: intervalName + ": {valueY.formatNumber('#.00')}" // Format value in tooltip
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}"
       })
     }));
-    lineSeries.strokes.template.set("strokeWidth", 2); // Line thickness
+    lineSeries.strokes.template.set("strokeWidth", 2);
     lineSeries.data.setAll(primaryData);
-    lineSeries.appear(1000); // Animation
-
+    lineSeries.appear(1000);
 
     // console.log("Primary series created.");
-    // Return object containing references needed for linking and legend
     return { line: lineSeries, fill: fillSeries, bars: value2Series };
   }
 
 
-  // --- Overlay Series Creation (Default tooltip background) ---
+  // --- Overlay Series Creation ---
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      let overlaySeriesList = [];
-     if (!overlayData) {
-         // console.log("No valid overlay data provided.");
-         return overlaySeriesList; // Return empty list if no data
-     }
+     if (!overlayData) { /* console.log("No valid overlay data provided."); */ return overlaySeriesList; }
      // console.log("Creating overlay series...");
      try {
          for (const weekKey in overlayData) {
@@ -317,104 +281,79 @@ am5.ready(function() {
                  const weekData = overlayData[weekKey];
                  // console.log("Creating LineSeries for: " + weekKey);
                  var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-                     name: weekKey, // Name from the JSON key (e.g., "Last Week")
-                     xAxis: xAxis,
-                     yAxis: yAxis,
-                     valueYField: "value",
-                     categoryXField: "time",
-                     stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")), // Use predefined color or default
-                     connect: false, // Don't connect gaps
+                     name: weekKey, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
+                     stroke: am5.color(colors[weekKey] || root.interfaceColors.get("grid")), connect: false,
                      tooltip: am5.Tooltip.new(root, {
-                         getFillFromSprite: true, // Tooltip background matches line
-                         labelTextColor: am5.color(0xffffff),
-                         fontSize: tooltipFontSize,
-                         labelText: "{name}: {valueY.formatNumber('#.00')}" // Show series name and formatted value
+                         getFillFromSprite: true, labelTextColor: am5.color(0xffffff),
+                         fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}"
                      })
                  }));
                  lineSeries.strokes.template.set("strokeWidth", 2);
-                 lineSeries.data.setAll(weekData); // Set data for this specific overlay series
-                 lineSeries.appear(1000); // Animation
-                 overlaySeriesList.push(lineSeries); // Add to the list
+                 lineSeries.data.setAll(weekData);
+                 lineSeries.appear(1000);
+                 overlaySeriesList.push(lineSeries);
              }
          }
-     } catch (e) {
-         console.error("Error creating overlay series:", e);
-     }
+     } catch (e) { console.error("Error creating overlay series:", e); }
      // console.log("Overlay series creation finished:", overlaySeriesList.length);
      return overlaySeriesList;
    }
 
   // --- Legend Creation & Linking ---
-  // *** ADDED DEBUG LOGS ***
+  // *** REMOVED DEBUG PREFIXES from console.log ***
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
-     // Combine series for the legend DATA
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries]; // Line, Bars, Overlays
 
      if (legendSeries.length === 0) { console.log("Skipping legend (no series)."); return null; }
 
-     console.log("DEBUG: Creating legend. Series included:", legendSeries.map(s => s.get("name"))); // LOG: Check series names
+     console.log("Creating legend. Series included:", legendSeries.map(s => s.get("name"))); // LOG
 
-     // Create container for legend and hint (unchanged)
      var legendContainer = chart.children.push(am5.Container.new(root, {
-        width: am5.percent(100),
-        layout: root.verticalLayout, // Arrange legend and hint vertically
-        x: am5.p50, centerX: am5.p50, // Center the container
-        paddingBottom: 10 // Add some space below
+        width: am5.percent(100), layout: root.verticalLayout,
+        x: am5.p50, centerX: am5.p50, paddingBottom: 10
      }));
      var legend = legendContainer.children.push(am5.Legend.new(root, {
-         x: am5.percent(50), centerX: am5.percent(50), // Center legend within container
-         layout: root.horizontalLayout, // Horizontal layout for items
-         marginTop: 5,
-         marginBottom: 5 // Space between legend and hint
+         x: am5.percent(50), centerX: am5.percent(50), layout: root.horizontalLayout,
+         marginTop: 5, marginBottom: 5
      }));
-     // Add hint label below legend
      legendContainer.children.push(am5.Label.new(root, {
-         text: "(Click legend items to toggle visibility)",
-         fontSize: "0.75em",
-         fill: am5.color(0x888888), // Grey color for hint
-         x: am5.p50, centerX: am5.p50 // Center hint text
+         text: "(Click legend items to toggle visibility)", fontSize: "0.75em",
+         fill: am5.color(0x888888), x: am5.p50, centerX: am5.p50
      }));
 
-     // Set data for the legend
      legend.data.setAll(legendSeries);
 
-     // Add event listener AFTER data is set for synchronized toggle
      legend.itemContainers.template.events.on("click", function(ev) {
         const clickedSeries = ev.target.dataItem?.dataContext;
-        console.log("--- DEBUG: Legend Click Detected ---"); // LOG: Start
-        console.log("DEBUG: Clicked Series Name:", clickedSeries?.get("name")); // LOG: Which series was clicked?
-        console.log("DEBUG: Main Line Series Name:", mainLineSeries?.get("name")); // LOG: What is the target series?
+        console.log("--- Legend Click Detected ---"); // LOG
+        console.log("Clicked Series Name:", clickedSeries?.get("name")); // LOG
+        console.log("Main Line Series Name:", mainLineSeries?.get("name")); // LOG
 
-        // Check if the clicked item is the main line series
         if (clickedSeries === mainLineSeries) {
-            console.log("DEBUG: MATCH: Clicked the MAIN interval legend item."); // LOG: Confirmation
-            // Use setTimeout to allow default toggle action to complete
+            console.log("MATCH: Clicked the MAIN interval legend item."); // LOG
             setTimeout(() => {
-                 // Check the NEW visibility state of the main line series AFTER the default toggle
                  const isHidden = mainLineSeries.isHidden() || !mainLineSeries.get("visible");
-                 console.log("DEBUG: Main line series is now hidden:", isHidden); // LOG: New state of line
-                 console.log("DEBUG: Fill series visibility BEFORE trying to toggle:", fillSeriesToToggle.get("visible")); // LOG: State before
+                 console.log("Main line series is now hidden:", isHidden); // LOG
+                 console.log("Fill series visibility BEFORE trying to toggle:", fillSeriesToToggle.get("visible")); // LOG
 
                  if (isHidden) {
-                    console.log("DEBUG: Action: Hiding fill series..."); // LOG: Action
+                    console.log("Action: Hiding fill series..."); // LOG
                     fillSeriesToToggle.hide();
                  } else {
-                    console.log("DEBUG: Action: Showing fill series..."); // LOG: Action
+                    console.log("Action: Showing fill series..."); // LOG
                     fillSeriesToToggle.show();
                  }
-                 // Check state shortly after trying to change it (optional, for deeper debug)
-                 setTimeout(() => {
-                    console.log("DEBUG: Fill series visibility AFTER trying to toggle:", fillSeriesToToggle.get("visible")); // LOG: State after
+                 setTimeout(() => { // Optional check after action
+                    console.log("Fill series visibility AFTER trying to toggle:", fillSeriesToToggle.get("visible")); // LOG
                  }, 50);
-
-            }, 0); // Timeout ensures default toggle action has completed
+            }, 0);
         } else {
-             console.log("DEBUG: NO MATCH: Clicked a different legend item (default toggle applies)."); // LOG: Clicked something else
+             console.log("NO MATCH: Clicked a different legend item (default toggle applies)."); // LOG
         }
-        console.log("--- DEBUG: End Legend Click Logic ---"); // LOG: End
+        console.log("--- End Legend Click Logic ---"); // LOG
      });
 
-     console.log("DEBUG: Legend created and listener attached.");
+     console.log("Legend created and listener attached."); // LOG
      return legend;
    }
 
@@ -422,34 +361,22 @@ am5.ready(function() {
   // --- Final Chart Configuration ---
   function configureChart(chart, root, yAxis, xAxis, label) {
     // console.log("Configuring final chart elements...");
-    // Add cursor
     var cursor = chart.set("cursor", am5xy.XYCursor.new(root, { behavior: "none" }));
-    cursor.lineY.set("visible", false); // Hide Y cursor line
+    cursor.lineY.set("visible", false);
 
-    // Add Y-axis label
     yAxis.children.unshift(am5.Label.new(root, {
-        rotation: -90,
-        text: "Average " + label + " Points",
-        y: am5.p50,
-        centerX: am5.p50,
-        paddingRight: 10 // Space between label and axis
+        rotation: -90, text: "Average " + label + " Points",
+        y: am5.p50, centerX: am5.p50, paddingRight: 10
     }));
 
-    // Add X-axis label
     xAxis.children.push(am5.Label.new(root, {
-        text: "Time of Day",
-        x: am5.p50,
-        centerX: am5.percent(50),
-        paddingTop: 10 // Space between axis and label
+        text: "Time of Day", x: am5.p50, centerX: am5.percent(50), paddingTop: 10
     }));
 
-    // Add horizontal scrollbar
     chart.set("scrollbarX", am5.Scrollbar.new(root, {
-        orientation: "horizontal",
-        marginBottom: 25 // Space below scrollbar
+        orientation: "horizontal", marginBottom: 25
     }));
 
-    // Make the chart appear animation
     chart.appear(1000, 100);
     // console.log("Chart configured.");
    }
@@ -461,16 +388,11 @@ am5.ready(function() {
   const xAxisData = prepareAxisCategories(primaryData);
   const { chart, xAxis, yAxis } = createChartAndAxes(root, xAxisData);
 
-  // Create primary series and get references
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
-
-  // Create overlay series
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
-  // Create legend, passing all necessary references for linking and data
   createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
 
-  // Final chart configurations (labels, cursor, scrollbar)
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
   // console.log("--- Chart Build Process Complete ---");
 
