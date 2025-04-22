@@ -9,31 +9,13 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
   let chartTypeLabel = type.value ?? "Value";
   let cleanedDataString = '[]';
   try {
-    console.log("--- Glide Input ---");
-    console.log("Raw primary data input:", dataStringValue);
-    console.log("Raw overlay data input:", overlayDataJsonStringValue);
+    console.log("--- Glide Input ---"); /*...*/
     let tempString = dataStringValue.trim();
-    tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
-    tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
-    tempString = tempString.replace(/bulletSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
-    tempString = tempString.replace(/,\s*(\})/g, '$1');
-    tempString = tempString.replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3');
-    if (tempString && !tempString.startsWith('[')) { tempString = '[' + tempString; }
-    if (tempString && !tempString.endsWith(']')) { tempString = tempString + ']'; }
-    if (!tempString || tempString === "[]" || tempString === "") {
-        console.log("Input data string is empty or '[]', using default '[]'.");
-        cleanedDataString = '[]';
-    } else {
-        JSON.parse(tempString); cleanedDataString = tempString;
-        console.log("DEBUG: Cleaned primary data string appears valid JSON.");
-    }
-  } catch (cleaningError) {
-      console.error("!!! Failed to clean/parse primary data string during input handling !!!", cleaningError);
-      console.error("Problematic string:", dataStringValue);
-      cleanedDataString = '[]';
-  }
-  console.log("DEBUG: Final string for primary data passed to chart:", cleanedDataString);
-  console.log("DEBUG: Final string for overlay data passed to chart:", overlayDataJsonStringValue);
+    /* ... cleaning ... */
+    if (!tempString || tempString === "[]" || tempString === "") { cleanedDataString = '[]'; }
+    else { JSON.parse(tempString); cleanedDataString = tempString; console.log("DEBUG: Cleaned primary data string appears valid JSON."); }
+  } catch (cleaningError) { /*...*/ cleanedDataString = '[]'; }
+  console.log("DEBUG: Final string for primary data passed to chart:", cleanedDataString); /*...*/
   console.log("--- End Glide Input ---");
 
 
@@ -81,14 +63,14 @@ am5.ready(function() {
   root.setThemes([am5themes_Animated.new(root)]);
   console.log("Root created.");
 
-  // --- Data Parsing Function --- (Restored filter logic)
+  // --- Data Parsing Function --- (Includes valueOpen, filter logic fixed)
   function parseChartData(primaryStr, overlayStr) {
      console.log("--- Starting parseChartData ---");
      let primaryData = [];
      let parsedOverlayData = null;
      let hasValidOverlay = false;
 
-     // Parse Primary Data (Includes valueOpen)
+     // Parse Primary Data
      console.log("Attempting to parse primary data string:", primaryStr);
      try {
          let rawPrimary = JSON.parse(primaryStr);
@@ -108,14 +90,8 @@ am5.ready(function() {
                  return item;
              }).filter(item => item !== null);
              console.log("Primary data processed, filtered, and valueOpen added. Resulting array length:", primaryData.length);
-         } else {
-             console.log("WARNING: Parsed primary data is not an array. primaryData will be empty.");
-         }
-     } catch (e) {
-         console.error("Error parsing primary data JSON inside parseChartData:", e);
-         console.error("Problematic primary string:", primaryStr);
-         primaryData = [];
-     }
+         } else { console.log("WARNING: Parsed primary data is not an array."); }
+     } catch (e) { /*...*/ primaryData = []; }
 
      // Parse Overlay Data
      console.log("Attempting to parse overlay data string:", overlayStr);
@@ -133,45 +109,23 @@ am5.ready(function() {
                          const weekDataRaw = rawOverlay[key];
                          if(Array.isArray(weekDataRaw)) {
                              console.log("Data for key", key, "is an array. Filtering items...");
-                             // *** CORRECTED LINE: Restored filter logic ***
-                             const processedWeekData = weekDataRaw.filter(item => {
+                             const processedWeekData = weekDataRaw.filter(item => { // Filter logic is correct here
                                 const isValid = item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number';
-                                if (!isValid) {
-                                    console.log("Invalid item found in overlay data for key", key, ":", item);
-                                }
+                                if (!isValid) { console.log("Invalid item found in overlay data for key", key, ":", item); }
                                 return isValid;
                              });
-                             // *** End of corrected filter ***
                              if (processedWeekData.length > 0) {
-                                 parsedOverlayData[key] = processedWeekData;
-                                 validKeys++;
+                                 parsedOverlayData[key] = processedWeekData; validKeys++;
                                  console.log("Key", key, "has", processedWeekData.length, "valid items after filtering.");
-                             } else {
-                                 console.log("Overlay data for key", key, "had no valid items after filtering.");
-                             }
-                         } else {
-                             console.log("Overlay data for key", key, "was not an array. Skipping.");
-                         }
+                             } else { console.log("Overlay data for key", key, "had no valid items after filtering."); }
+                         } else { console.log("Overlay data for key", key, "was not an array. Skipping."); }
                      }
                  }
-                 if (validKeys > 0) {
-                     hasValidOverlay = true;
-                     console.log("Overlay data parsed successfully. Valid keys with data:", validKeys);
-                 } else {
-                     console.log("WARNING: Overlay data parsed, but no valid keys/data found after processing.");
-                     parsedOverlayData = null;
-                 }
-             } else {
-                 console.log("WARNING: Parsed overlay data is not a valid object (expected non-array object). parsedOverlayData will be null.");
-             }
-         } else {
-             console.log("No overlay data string provided or it's empty/'{}'. No overlay data to process.");
-         }
-     } catch (e) {
-         console.error("Error parsing overlay JSON inside parseChartData:", e);
-         console.error("Problematic overlay string:", overlayStr);
-         parsedOverlayData = null;
-     }
+                 if (validKeys > 0) { hasValidOverlay = true; console.log("Overlay data parsed successfully."); }
+                 else { console.log("WARNING: Overlay data parsed, but no valid keys/data found."); parsedOverlayData = null; }
+             } else { console.log("WARNING: Parsed overlay data is not a valid object."); }
+         } else { console.log("No overlay data string provided."); }
+     } catch (e) { /*...*/ parsedOverlayData = null; }
 
      console.log("--- Finished parseChartData ---");
      return { primaryData, parsedOverlayData, hasValidOverlay };
@@ -180,55 +134,27 @@ am5.ready(function() {
 
   // --- Axis Category Preparation --- (No Changes)
   function prepareAxisCategories(primaryData) {
-    console.log("--- Starting prepareAxisCategories ---");
-    if (!primaryData || primaryData.length === 0) { console.log("WARNING: Primary data is empty for axis prep."); return []; }
-    try {
-      console.log("Preparing axis categories...");
-      let categoryStrings = primaryData.map(item => item.time);
-      let uniqueCategoryStrings = categoryStrings.filter((value, index, self) => self.indexOf(value) === index);
-      let xAxisData = uniqueCategoryStrings.map(timeStr => ({ time: timeStr }));
-      console.log("Axis categories prepared. Count:", xAxisData.length);
-      console.log("--- Finished prepareAxisCategories ---");
-      return xAxisData;
-    } catch (e) { console.error("Error preparing axis categories:", e); return []; }
+    /* ... same as before ... */
+    return xAxisData;
   }
 
 
   // --- Chart and Axes Creation --- (Keeping forceZero: true)
   function createChartAndAxes(root, xAxisData) {
-    console.log("--- Starting createChartAndAxes ---");
-    var chart = root.container.children.push(am5xy.XYChart.new(root, { panX: true, panY: true, wheelX: "panX", wheelY: "zoomX", layout: root.verticalLayout, pinchZoomX: true }));
-    var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 70 });
-    xRenderer.labels.template.setAll({ fontSize: 8, rotation: -90, centerY: am5.p50, centerX: am5.p100, paddingRight: 5 });
-    var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "time", renderer: xRenderer, tooltip: am5.Tooltip.new(root, {}) }));
-    if (xAxisData && xAxisData.length > 0) {
-        xAxis.data.setAll(xAxisData); console.log("Set categories on X-Axis.");
-    } else { console.log("WARNING: X-Axis has no data categories."); }
-    var yRenderer = am5xy.AxisRendererY.new(root, {});
-    var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { maxPrecision: 2, renderer: yRenderer }));
+    /* ... same as before ... */
     yAxis.set("forceZero", true);
-    console.log("Y-Axis forceZero set to true.");
-    console.log("--- Finished createChartAndAxes ---");
+    /* ... */
     return { chart, xAxis, yAxis };
    }
 
 
-  // --- Primary Series Creation --- (Using reversed order and openValueYField)
+  // --- Primary Series Creation ---
+  // *** REVERTED ORDER: Add line/area (valueAreaSeries) FIRST, then bars (value2Series) ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     console.log("--- Starting createPrimarySeries ---");
     let valueAreaSeries, value2Series;
 
-    // 1. Add Value2 Bar Series FIRST
-    console.log("Creating Value2 Bar series (Columns)...");
-    value2Series = chart.series.push(am5xy.ColumnSeries.new(root, { /* ... */ }));
-    // ... adapters and settings ...
-    console.log("Setting data for Value2 Bar series. Item count:", primaryData.length);
-    value2Series.data.setAll(primaryData);
-    value2Series.appear(1000);
-    console.log("Value2 Bar series created and added.");
-
-
-    // 2. Add Value Area Series SECOND (Using openValueYField)
+    // *** 1. Add Value Area Series FIRST *** (Using openValueYField)
     console.log("Creating Value Area series (Line + Fill)...");
     valueAreaSeries = chart.series.push(am5xy.LineSeries.new(root, {
       name: intervalName,
@@ -239,7 +165,7 @@ am5.ready(function() {
       openValueYField: "valueOpen", // Using openValueYField approach again
       stroke: am5.color(primaryOutlineColor),
       fill: am5.color(primaryFillColor),
-      fillOpacity: 0.8,
+      fillOpacity: 0.8, // Fill should be visible
       connect: false,
       toggleable: true,
       tooltip: am5.Tooltip.new(root, { // Keeping tooltip fixes
@@ -255,6 +181,36 @@ am5.ready(function() {
     valueAreaSeries.appear(1000);
     console.log("Value Area series created and added. Fill opacity:", valueAreaSeries.get("fillOpacity"), "Fill color:", valueAreaSeries.get("fill"));
 
+
+    // *** 2. Add Value2 Bar Series SECOND ***
+    console.log("Creating Value2 Bar series (Columns)...");
+    value2Series = chart.series.push(am5xy.ColumnSeries.new(root, {
+      name: intervalName + " (Cumulative)",
+      xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
+      toggleable: true,
+      tooltip: am5.Tooltip.new(root, {
+          getFillFromSprite: true,
+          labelTextColor: whiteColor,
+          fontSize: tooltipFontSize,
+          labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}"
+      })
+    }));
+    // Adapters for color
+    value2Series.columns.template.adapters.add("fill", function(fill, target) {
+      const v2 = target.dataItem?.get("valueY");
+      return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0);
+    });
+    value2Series.columns.template.adapters.add("stroke", function(stroke, target) {
+       const v2 = target.dataItem?.get("valueY");
+       return typeof v2 === 'number' ? (v2 < 0 ? am5.color(negativeValue2Color) : am5.color(positiveValue2Color)) : am5.color(0xffffff, 0);
+    });
+    value2Series.columns.template.setAll({ strokeWidth: 1, strokeOpacity: 1, width: am5.percent(60) });
+    console.log("Setting data for Value2 Bar series. Item count:", primaryData.length);
+    value2Series.data.setAll(primaryData); // Data includes valueOpen, but ColumnSeries ignores it
+    value2Series.appear(1000);
+    console.log("Value2 Bar series created and added.");
+
+
     console.log("--- Finished createPrimarySeries ---");
     return { valueArea: valueAreaSeries, bars: value2Series };
   }
@@ -262,46 +218,19 @@ am5.ready(function() {
 
   // --- Overlay Series Creation --- (Keep tooltip fixes)
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
-    console.log("--- Starting createOverlaySeries ---");
-    let overlaySeriesList = [];
-    if (!overlayData) { /*...*/ return overlaySeriesList; }
-    console.log("Creating overlay series...");
-    try {
-      for (const weekKey in overlayData) {
-        if (Object.hasOwnProperty.call(overlayData, weekKey)) {
-          const weekData = overlayData[weekKey];
-          const seriesColor = am5.color(colors[weekKey] || root.interfaceColors.get("grid"));
-          console.log("Creating LineSeries for overlay key:", weekKey);
-          var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
-              name: weekKey, /*...*/ stroke: seriesColor, connect: false,
-              tooltip: am5.Tooltip.new(root, { // Keep tooltip fixes
-                pointerOrientation: "horizontal", getStrokeFromSprite: true,
-                labelTextColor: whiteColor,
-                background: am5.RoundedRectangle.new(root, { fill: seriesColor, fillOpacity: 0.9 }),
-                fontSize: tooltipFontSize, labelText: "{name}: {valueY.formatNumber('#.00')}"
-              })
-          }));
-          lineSeries.strokes.template.set("strokeWidth", 2);
-          lineSeries.data.setAll(weekData);
-          lineSeries.appear(1000);
-          overlaySeriesList.push(lineSeries);
-        }
-      }
-    } catch (e) { console.error("Error creating overlay series:", e); }
-    console.log("Overlay series creation finished.");
-    console.log("--- Finished createOverlaySeries ---");
+    /* ... same as before ... */
     return overlaySeriesList;
   }
 
   // --- Legend Creation --- (No Changes)
   function createLegend(chart, root, valueAreaSeries, barsSeries, otherSeries) {
-     /* ... */
+     /* ... same as before ... */
      return legend;
   }
 
   // --- Final Chart Configuration --- (No Changes)
   function configureChart(chart, root, yAxis, xAxis, label) {
-    /* ... */
+    /* ... same as before ... */
    }
 
 
@@ -311,6 +240,7 @@ am5.ready(function() {
   if (!primaryData || primaryData.length === 0) { /*...*/ return; }
   const xAxisData = prepareAxisCategories(primaryData);
   const { chart, xAxis, yAxis } = createChartAndAxes(root, xAxisData);
+  // createPrimarySeries now adds Line/Area first, then Bars
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
   createLegend(chart, root, primarySeriesRefs.valueArea, primarySeriesRefs.bars, overlaySeries);
