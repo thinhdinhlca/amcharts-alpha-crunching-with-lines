@@ -152,7 +152,6 @@ columnSeries.data.setAll(data);
 columnSeries.appear(1000);
 columnSeries.hide(0);
 
-
 const overlayColors = {
     "This Week": "#228B22",
     "Last Week": "#FFA500",
