@@ -29,6 +29,7 @@ window.function = function (data, overlayDataJson, intervalName, width, height, 
 
 
   // --- HTML Template ---
+  // Using backticks for the main template literal
   let ht = `
 <!DOCTYPE html>
 <html>
@@ -91,9 +92,8 @@ am5.ready(function() {
     try {
       const state = {};
       seriesList.forEach(series => {
-        // Make sure we only save state for series that actually have a name (are in the legend)
         const seriesName = series.get("name");
-        if (seriesName && series.get("toggleable") !== false) { // Check if toggleable (fill series is not)
+        if (seriesName && series.get("toggleable") !== false) {
              state[seriesName] = series.get("visible");
         }
       });
@@ -134,7 +134,6 @@ am5.ready(function() {
     const lineSeriesName = intervalName;
     const value2SeriesName = intervalName + " (Cumulative)";
 
-    // Determine initial visibility based on localStorage or default (true)
     const initialLineVisible = initialVisibilityState.hasOwnProperty(lineSeriesName) ? initialVisibilityState[lineSeriesName] : true;
     const initialValue2Visible = initialVisibilityState.hasOwnProperty(value2SeriesName) ? initialVisibilityState[value2SeriesName] : true;
 
@@ -143,17 +142,16 @@ am5.ready(function() {
         name: intervalName + " (Fill)",
         xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
         fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100),
-        toggleable: false, // Not directly toggleable via legend
-        visible: initialLineVisible // Start hidden if line is hidden
+        toggleable: false,
+        visible: initialLineVisible
     }));
     fillSeries.data.setAll(primaryData);
-    // No appear() needed, visibility is controlled
 
     // 2. Value2 Bar Series (Toggleable, applies stored state)
     value2Series = chart.series.push(am5xy.ColumnSeries.new(root, {
       name: value2SeriesName,
       xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time",
-      visible: initialValue2Visible, // Apply stored/default visibility
+      visible: initialValue2Visible,
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false, labelTextColor: am5.color(whiteColorHex),
           fontSize: tooltipFontSize, labelText: value2SeriesName + ": {valueY.formatNumber('#.##')}"
@@ -164,14 +162,14 @@ am5.ready(function() {
     value2Series.columns.template.adapters.add("stroke", function(stroke, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); });
     value2Series.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(60) });
     value2Series.data.setAll(primaryData);
-    if (initialValue2Visible) value2Series.appear(1000); // Only animate if initially visible
+    if (initialValue2Visible) value2Series.appear(1000);
 
     // 3. Area Line Series (Toggleable, applies stored state)
     lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
       name: lineSeriesName,
       xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
       stroke: am5.color(primaryOutlineColor), fillOpacity: 0,
-      visible: initialLineVisible, // Apply stored/default visibility
+      visible: initialLineVisible,
       connect: false,
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: true, labelTextColor: am5.color(whiteColorHex),
@@ -181,7 +179,7 @@ am5.ready(function() {
     lineSeries.get("tooltip").get("background").set("fill", am5.color(primaryOutlineColor));
     lineSeries.strokes.template.set("strokeWidth", 2);
     lineSeries.data.setAll(primaryData);
-    if (initialLineVisible) lineSeries.appear(1000); // Only animate if initially visible
+    if (initialLineVisible) lineSeries.appear(1000);
 
     return { line: lineSeries, fill: fillSeries, bars: value2Series };
   }
@@ -199,25 +197,22 @@ am5.ready(function() {
            const weekData = overlayData[weekKey];
            const seriesColor = colors[weekKey] || colors["Default"];
 
-           // Determine initial visibility: Check localStorage FIRST, otherwise hide if in default list
-           let initialVisible = true; // Default to visible unless overridden
+           let initialVisible = true;
            if (hasInitialState) {
-                // If state exists, use it
-                initialVisible = initialVisibilityState.hasOwnProperty(weekKey) ? initialVisibilityState[weekKey] : true; // Default true if state exists but missing this key
+                initialVisible = initialVisibilityState.hasOwnProperty(weekKey) ? initialVisibilityState[weekKey] : true;
            } else {
-               // No state exists, apply default hiding rules
                if (seriesToHideByDefault.includes(weekKey)) {
                    initialVisible = false;
                }
            }
-           // console.log(`Series: ${weekKey}, HasInitialState: ${hasInitialState}, InitialVisible: ${initialVisible}`);
+           // console.log("Series: " + weekKey + ", HasInitialState: " + hasInitialState + ", InitialVisible: " + initialVisible); // Use + for concatenation
 
 
            var lineSeries = chart.series.push(am5xy.LineSeries.new(root, {
              name: weekKey,
              xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time",
              stroke: am5.color(seriesColor),
-             visible: initialVisible, // Apply determined visibility
+             visible: initialVisible,
              connect: false,
              tooltip: am5.Tooltip.new(root, {
                getFillFromSprite: false,
@@ -229,7 +224,7 @@ am5.ready(function() {
            lineSeries.get("tooltip").get("background").set("fill", am5.color(seriesColor));
            lineSeries.strokes.template.set("strokeWidth", 2);
            lineSeries.data.setAll(weekData);
-           if (initialVisible) lineSeries.appear(1000); // Animate only if visible
+           if (initialVisible) lineSeries.appear(1000);
 
            overlaySeriesList.push(lineSeries);
          }
@@ -240,20 +235,21 @@ am5.ready(function() {
 
   // --- Legend Creation & Linking (Saves state on click) ---
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
-     const legendSeries = [mainLineSeries, barsSeries, ...otherSeries]; // All toggleable series
-     const allSeriesForState = [mainLineSeries, fillSeriesToToggle, barsSeries, ...otherSeries]; // Include non-toggleable fill for saving state based on line
+     const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
+     const allSeriesForState = [mainLineSeries, fillSeriesToToggle, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) return null;
 
      var legend = chart.children.push(am5.Legend.new(root, {
          centerX: am5.p50, x: am5.p50,
          layout: am5.GridLayout.new(root, {
-             maxColumns: 3 // *** Set to 3 columns ***
+             maxColumns: 3
          }),
          marginTop: 15, marginBottom: 15
      }));
 
      let hintLabel = am5.Label.new(root, {
-         text: "(Click legend items to toggle visibility - saved in browser)", // Updated hint
+         // *** Use single quotes for the string since the outer template uses backticks ***
+         text: '(Click legend items to toggle visibility - saved in browser)',
          fontSize: "0.75em", fill: am5.color(hintLabelColorHex),
          centerX: am5.p50, x: am5.p50, paddingTop: 5
      });
@@ -265,16 +261,13 @@ am5.ready(function() {
         hintLabel.set("dy", legendHeight + 5);
      });
 
-     legend.data.setAll(legendSeries); // Set data ONLY for toggleable series
+     legend.data.setAll(legendSeries);
 
-     // Add event listener AFTER data is set
      legend.itemContainers.template.events.on("click", function(ev) {
         const clickedSeries = ev.target.dataItem?.dataContext;
         if (!clickedSeries) return;
 
-        // Need a slight delay for amCharts to update the visible state internally
         setTimeout(() => {
-            // Special handling for the main line series to toggle its fill counterpart
             if (clickedSeries === mainLineSeries) {
                 if (mainLineSeries.isHidden() || !mainLineSeries.get("visible")) {
                     fillSeriesToToggle.hide();
@@ -282,10 +275,8 @@ am5.ready(function() {
                     fillSeriesToToggle.show();
                 }
             }
-            // Save the state of ALL toggleable series after any click
-            saveVisibilityState(legendSeries); // Pass only the legend series
-
-        }, 50); // 50ms delay, adjust if needed
+            saveVisibilityState(legendSeries);
+        }, 50);
      });
 
      return legend;
@@ -303,8 +294,7 @@ am5.ready(function() {
          text: "Time of Day", x: am5.p50,
          centerX: am5.percent(50), paddingTop: 10
      }));
-     // Increased marginBottom for scrollbar to accommodate potentially taller legend + hint
-     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 75 })); // Further increased margin
+     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 75 }));
      chart.appear(1000, 100);
   }
 
@@ -314,11 +304,9 @@ am5.ready(function() {
   const xAxisData = prepareAxisCategories(primaryData);
   const { chart, xAxis, yAxis } = createChartAndAxes(root, xAxisData);
 
-  // Pass initial state info to series creation
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
-  // Create legend and attach state-saving listener
   createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
 
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
@@ -327,7 +315,7 @@ am5.ready(function() {
 </script>
 
 </body>
-</html>`;
+</html>`; // End of the main backtick template literal
 
   // --- Encode and Return URI ---
   const encodedHtml = encodeURIComponent(ht);
