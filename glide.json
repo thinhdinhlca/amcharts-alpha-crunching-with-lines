@@ -17,22 +17,56 @@
     {
       "name": "intervalName",
       "displayName": "Interval Name",
-      "type": "string"
+      "type": "string",
+      "defaultValue": "Period"
+    },
+    {
+      "name": "type",
+      "displayName": "Ticker Symbol / Value Label (e.g., SPX)",
+      "type": "string",
+      "defaultValue": "Value"
+    },
+    {
+      "name": "showCumulative",
+      "displayName": "Show Cumulative Line?",
+      "type": "boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "show3WeeksAgo",
+      "displayName": "Show 3 Weeks Ago Line?",
+      "type": "boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "show2WeeksAgo",
+      "displayName": "Show 2 Weeks Ago Line?",
+      "type": "boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "showLastWeek",
+      "displayName": "Show Last Week Line?",
+      "type": "boolean",
+      "defaultValue": true
+    },
+    {
+      "name": "showThisWeek",
+      "displayName": "Show This Week Line?",
+      "type": "boolean",
+      "defaultValue": true
     },
     {
       "name": "width",
       "displayName": "Width (default: 100%)",
-      "type": "number"
+      "type": "number",
+      "defaultValue": 100
     },
     {
       "name": "height",
-      "displayName": "Height (default: 500px)",
-      "type": "number"
-    },
-    {
-      "name": "type",
-      "displayName": "Ticker Symbol (e.g., SPX)",
-      "type": "string"
+      "displayName": "Height (default: 550px)",
+      "type": "number",
+      "defaultValue": 550
     }
   ],
   "result": {
