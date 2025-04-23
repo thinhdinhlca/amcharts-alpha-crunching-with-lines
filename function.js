@@ -70,7 +70,7 @@ am5.ready(function() {
   const primaryValue2TooltipBgColor = "#333333"; // Dark grey background for value2 bars tooltip
   const positiveValue2Color = "#052f20";
   const negativeValue2Color = "#78080e";
-  const tooltipFontSize = "0.8em";
+  const tooltipFontSize = "0.6em";
   // Keep hex variables for re-use in logic if needed, but use direct hex in settings below
   const whiteColorHex = "#ffffff";
   const blackColorHex = "#000000";
@@ -142,9 +142,10 @@ am5.ready(function() {
       connect: false,
       tooltip: am5.Tooltip.new(root, {
           getFillFromSprite: false,
-          labelTextColor: am5.color("#ffffff"), // *** Use direct hex ***
+          labelTextColor: am5.color("#ffffff"), // Ensure text color is white
           fontSize: tooltipFontSize,
-          labelText: intervalName + ": {valueY.formatNumber('#.00')}"
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}",
+          background: am5.ColorSet.new(root, { colors: [am5.color("#09077b")] }) // Dark blue background for better contrast
       })
     }));
 
