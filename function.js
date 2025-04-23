@@ -141,11 +141,10 @@ am5.ready(function() {
       stroke: am5.color(primaryOutlineColor), fillOpacity: 0,
       connect: false,
       tooltip: am5.Tooltip.new(root, {
-          getFillFromSprite: false,
-          labelTextColor: am5.color("#ffffff"), // Ensure text color is white
+          ggetFillFromSprite: true,
+          labelTextColor: am5.color("#ffffff"), // Set text color to white
           fontSize: tooltipFontSize,
-          labelText: intervalName + ": {valueY.formatNumber('#.00')}",
-          background: am5.ColorSet.new(root, { colors: [am5.color("#09077b")] }) // Dark blue background for better contrast
+          labelText: intervalName + ": {valueY.formatNumber('#.00')}"
       })
     }));
 
