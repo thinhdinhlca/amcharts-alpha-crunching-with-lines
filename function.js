@@ -1,6 +1,7 @@
 window.function = function (
     data, overlayDataJson, intervalName, type, // Core data/labels
-    showCumulative, show3WeeksAgo, show2WeeksAgo, showLastWeek, showThisWeek, // NEW Boolean flags (act as DEFAULTS)
+    // Boolean flags are now less relevant for initial state, but kept for potential future use
+    showCumulative, show3WeeksAgo, show2WeeksAgo, showLastWeek, showThisWeek,
     width, height // Dimensions
 ) {
 
@@ -12,17 +13,15 @@ window.function = function (
   let chartHeight = height.value ?? 550;
   let chartTypeLabel = type.value ?? "Value";
 
-  // --- Get boolean visibility flags (used as DEFAULTS if no preference stored) ---
-  let defaultShowCumulative = showCumulative.value ?? true;
-  let defaultShow3WeeksAgo = show3WeeksAgo.value ?? true;
-  let defaultShow2WeeksAgo = show2WeeksAgo.value ?? true;
-  let defaultShowLastWeek = showLastWeek.value ?? true;
-  let defaultShowThisWeek = showThisWeek.value ?? true;
+  // Boolean flags read but not used for initial visibility setting below
+  // let defaultShowCumulative = showCumulative.value ?? false; // Example of reading if needed later
+  // ... etc ...
 
-  // Basic cleaning remains the same...
+  // --- JSON Cleaning (same as before) ---
   let cleanedDataString = '[]';
   try {
     let tempString = dataStringValue.trim();
+    // ... (cleaning regex remains the same) ...
     tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/bulletSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
@@ -63,70 +62,8 @@ am5.ready(function() {
   const intervalName = ${JSON.stringify(intervalNameValue)};
   const chartTypeLabel = ${JSON.stringify(chartTypeLabel)};
 
-  // --- Default Visibility Flags (from function inputs) ---
-  const defaultShow = {
-      [intervalName + " (Cumulative)"]: ${JSON.stringify(defaultShowCumulative)},
-      "3 Weeks Ago": ${JSON.stringify(defaultShow3WeeksAgo)},
-      "2 Weeks Ago": ${JSON.stringify(defaultShow2WeeksAgo)},
-      "Last Week": ${JSON.stringify(defaultShowLastWeek)},
-      "This Week": ${JSON.stringify(defaultShowThisWeek)}
-      // Add defaults for any other potential overlay keys if needed
-  };
-
-  // --- localStorage Configuration ---
-  const localStorageKey = \`glideChartVisibilityPrefs_\${chartTypeLabel}_\${intervalName}\`; // Unique key per chart type/interval
-
-  // --- Helper: Load Preferences from localStorage ---
-  function loadPreferences() {
-    try {
-      const prefsString = localStorage.getItem(localStorageKey);
-      if (prefsString) {
-        const prefs = JSON.parse(prefsString);
-        // Basic validation: ensure it's an object
-        if (typeof prefs === 'object' && prefs !== null && !Array.isArray(prefs)) {
-           // console.log("Loaded preferences from localStorage:", prefs);
-           return prefs;
-        } else {
-           console.warn("Invalid preferences format found in localStorage. Ignoring.");
-           localStorage.removeItem(localStorageKey); // Clear invalid data
-           return {}; // Return empty object
-        }
-      }
-    } catch (e) {
-      console.error("Error reading or parsing preferences from localStorage:", e);
-      // Optionally clear invalid data if parsing fails
-      // localStorage.removeItem(localStorageKey);
-    }
-    // console.log("No preferences found in localStorage or error occurred.");
-    return {}; // Return empty object if not found or error
-  }
-
-  // --- Helper: Save Preferences to localStorage ---
-  function savePreferences(prefs) {
-    try {
-      localStorage.setItem(localStorageKey, JSON.stringify(prefs));
-      // console.log("Saved preferences to localStorage:", prefs);
-    } catch (e) {
-      console.error("Error saving preferences to localStorage:", e);
-    }
-  }
-
-  // --- Initial Preferences Load ---
-  let visibilityPreferences = loadPreferences(); // Load once at the start
-
-  // --- Helper: Get Initial Visibility (Pref > Default) ---
-  function getInitialVisibility(seriesName) {
-      // Check if a preference exists for this series name
-      if (visibilityPreferences.hasOwnProperty(seriesName)) {
-          // console.log(\`Using stored preference for \${seriesName}: \${visibilityPreferences[seriesName]}\`);
-          return !!visibilityPreferences[seriesName]; // Ensure boolean return
-      }
-      // Fallback to the default value from input parameters
-      const defaultValue = defaultShow.hasOwnProperty(seriesName) ? defaultShow[seriesName] : true; // Default to true if not in defaultShow map
-      // console.log(\`Using default visibility for \${seriesName}: \${defaultValue}\`);
-      return defaultValue;
-  }
-
+  // NOTE: Removed localStorage logic and preference loading.
+  // Initial state is now hardcoded: Main line visible, others hidden.
 
   // --- Color/Style Constants (Unchanged) ---
   const overlayColors = { "This Week": "#228B22", "Last Week": "#FFA500", "2 Weeks Ago": "#800080", "3 Weeks Ago": "#DC143C", "Default": "#888888" };
@@ -147,44 +84,37 @@ am5.ready(function() {
 
   // --- Data Parsing Function (Unchanged) ---
   function parseChartData(primaryStr, overlayStr) { /* ... (same as before) ... */
-     let primaryData = []; let parsedOverlayData = null; let hasValidOverlay = false; try { let rawPrimary = JSON.parse(primaryStr); if (Array.isArray(rawPrimary)) { primaryData = rawPrimary.map(item => { if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) { return null; } if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') { delete item.value2; } return item; }).filter(item => item !== null); } else { console.warn("Parsed primary data is not an array."); } } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; } try { if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") { let rawOverlay = JSON.parse(overlayStr); if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) { parsedOverlayData = {}; let validKeys = 0; for (const key in rawOverlay) { if (Object.hasOwnProperty.call(rawOverlay, key)) { const weekDataRaw = rawOverlay[key]; if(Array.isArray(weekDataRaw)) { const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' ); if (processedWeekData.length > 0) { parsedOverlayData[key] = processedWeekData; validKeys++; } else { console.warn("Overlay data for key \\"" + key + "\\" had no valid items after filtering."); } } else { console.warn("Overlay data for key \\"" + key + "\\" was not an array."); } } } if (validKeys > 0) { hasValidOverlay = true; } else { console.warn("Overlay data parsed, but no valid keys/data found."); parsedOverlayData = null; } } else { console.warn("Parsed overlay data is not a valid object."); } } else { /* No overlay data */ } } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; } return { primaryData, parsedOverlayData, hasValidOverlay };
+    let primaryData = []; let parsedOverlayData = null; let hasValidOverlay = false; try { let rawPrimary = JSON.parse(primaryStr); if (Array.isArray(rawPrimary)) { primaryData = rawPrimary.map(item => { if (!(item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number')) { return null; } if (item.hasOwnProperty('value2') && typeof item.value2 !== 'number') { delete item.value2; } return item; }).filter(item => item !== null); } else { console.warn("Parsed primary data is not an array."); } } catch (e) { console.error("Error parsing primary data JSON:", e); primaryData = []; } try { if (overlayStr && overlayStr.trim() !== "" && overlayStr.trim() !== "{}") { let rawOverlay = JSON.parse(overlayStr); if (typeof rawOverlay === 'object' && rawOverlay !== null && !Array.isArray(rawOverlay)) { parsedOverlayData = {}; let validKeys = 0; for (const key in rawOverlay) { if (Object.hasOwnProperty.call(rawOverlay, key)) { const weekDataRaw = rawOverlay[key]; if(Array.isArray(weekDataRaw)) { const processedWeekData = weekDataRaw.filter(item => item && typeof item === 'object' && item.hasOwnProperty('time') && typeof item.time === 'string' && item.hasOwnProperty('value') && typeof item.value === 'number' ); if (processedWeekData.length > 0) { parsedOverlayData[key] = processedWeekData; validKeys++; } else { /* Warn */ } } else { /* Warn */ } } } if (validKeys > 0) { hasValidOverlay = true; } else { parsedOverlayData = null; } } else { /* Warn */ } } else { /* No overlay data */ } } catch (e) { console.error("Error parsing overlay JSON:", e); parsedOverlayData = null; } return { primaryData, parsedOverlayData, hasValidOverlay };
    }
 
   // --- Axis Category Preparation (Unchanged) ---
   function prepareAxisCategories(primaryData) { /* ... (same as before) ... */
      if (!primaryData || primaryData.length === 0) { return []; } try { let categoryStrings = primaryData.map(item => item.time); let uniqueCategoryStrings = categoryStrings.filter((value, index, self) => self.indexOf(value) === index); let xAxisData = uniqueCategoryStrings.map(timeStr => ({ time: timeStr })); return xAxisData; } catch (e) { console.error("Error preparing axis categories:", e); return []; }
-   }
+  }
 
   // --- Chart and Axes Creation (Unchanged) ---
   function createChartAndAxes(root, xAxisData) { /* ... (same as before) ... */
     var chart = root.container.children.push(am5xy.XYChart.new(root, { panX: true, panY: true, wheelX: "panX", wheelY: "zoomX", layout: root.verticalLayout, pinchZoomX: true })); var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 70 }); xRenderer.labels.template.setAll({ fontSize: 8, rotation: -90, centerY: am5.p50, centerX: am5.p100, paddingRight: 5 }); var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "time", renderer: xRenderer, tooltip: am5.Tooltip.new(root, {}) })); if (xAxisData.length > 0) { xAxis.data.setAll(xAxisData); } else { console.warn("X-Axis has no data categories."); } var yRenderer = am5xy.AxisRendererY.new(root, {}); var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { maxPrecision: 2, renderer: yRenderer })); return { chart, xAxis, yAxis };
    }
 
-
-  // --- Primary Series Creation (Value2 Bars toggleable) ---
-  // (No change needed here, visibility handled after creation)
+  // --- Primary Series Creation (Unchanged logic) ---
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) { /* ... (same as before) ... */
     let lineSeries, fillSeries, value2Series;
-    // 1. Fill Series
     fillSeries = chart.series.push(am5xy.ColumnSeries.new(root, { name: intervalName + " (Fill)", xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100), toggleable: false }));
     fillSeries.data.setAll(primaryData);
-    // 2. Value2 Bar Series (Cumulative)
     value2Series = chart.series.push(am5xy.ColumnSeries.new(root, { name: intervalName + " (Cumulative)", xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time", tooltip: am5.Tooltip.new(root, { getFillFromSprite: false, labelTextColor: am5.color(whiteColorHex), fontSize: tooltipFontSize, labelText: intervalName + " (Cumulative): {valueY.formatNumber('#.##')}" }) }));
     value2Series.get("tooltip").get("background").set("fill", am5.color(primaryValue2TooltipBgColor));
     value2Series.columns.template.adapters.add("fill", function(fill, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); });
     value2Series.columns.template.adapters.add("stroke", function(stroke, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); });
     value2Series.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(60) });
     value2Series.data.setAll(primaryData);
-    // 3. Main Line Series
     lineSeries = chart.series.push(am5xy.LineSeries.new(root, { name: intervalName, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", stroke: am5.color(primaryOutlineColor), fillOpacity: 0, connect: false, tooltip: am5.Tooltip.new(root, { getFillFromSprite: true, labelTextColor: am5.color(whiteColorHex), fontSize: tooltipFontSize, labelText: intervalName + ": {valueY.formatNumber('#.00')}" }) }));
     lineSeries.strokes.template.set("strokeWidth", 2);
     lineSeries.data.setAll(primaryData);
     return { line: lineSeries, fill: fillSeries, bars: value2Series };
-   }
+  }
 
-
-  // --- Overlay Series Creation ---
-  // (No change needed here, visibility handled after creation)
+  // --- Overlay Series Creation (Unchanged logic) ---
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) { /* ... (same as before) ... */
      let overlaySeriesList = []; if (!overlayData) { return overlaySeriesList; }
      try {
@@ -201,11 +131,12 @@ am5.ready(function() {
        }
      } catch (e) { console.error("Error creating overlay series:", e); }
      return overlaySeriesList;
-   }
+  }
 
   // --- Legend Creation & Linking ---
-  // *** MODIFIED: Set maxColumns to 3 and update click handler to save preferences ***
+  // *** Kept maxColumns: 3, No preference saving needed ***
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
+     // Include ALL series in the legend data so they can be toggled on
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) { return null; }
 
@@ -228,37 +159,26 @@ am5.ready(function() {
      // Set data for the legend
      legend.data.setAll(legendSeries);
 
-     // *** MODIFIED: Add preference saving to click listener ***
+     // *** Simplified click listener - only handles fill toggle ***
      legend.itemContainers.template.events.on("click", function(ev) {
         if (!ev.target.dataItem || !ev.target.dataItem.dataContext) return;
-
         const clickedSeries = ev.target.dataItem.dataContext;
-        const seriesName = clickedSeries.get("name"); // Get the name (e.g., "Period", "Last Week")
 
-        // Use setTimeout to check visibility AFTER amCharts updates it
-        setTimeout(() => {
-            const isNowVisible = !clickedSeries.isHidden();
-            // console.log(\`Series "\${seriesName}" is now \${isNowVisible ? 'visible' : 'hidden'}\`);
-
-            // Special handling for the main line toggling the fill series
-            if (clickedSeries === mainLineSeries) {
-                if (!isNowVisible) { // If main line was hidden
+        // Special handling for the main line toggling the fill series
+        if (clickedSeries === mainLineSeries) {
+            setTimeout(() => {
+                 if (mainLineSeries.isHidden() || !mainLineSeries.get("visible")) {
                     fillSeriesToToggle.hide(0);
-                } else { // If main line was shown
+                 } else {
                     fillSeriesToToggle.show(0);
-                }
-                // Don't save preference for the main line itself if it doesn't represent a toggleable state directly
-                // Or decide if you *want* to save the main line's state too. Let's assume we only save for explicitly toggled items (Cumulative + Overlays) for now.
-            } else {
-                // Save preference for Cumulative bars and Overlays
-                visibilityPreferences[seriesName] = isNowVisible; // Update in-memory object
-                savePreferences(visibilityPreferences); // Save to localStorage
-            }
-        }, 0); // End setTimeout
-     }); // End click listener
+                 }
+            }, 0);
+        }
+        // amCharts handles the show/hide toggle of the clicked series automatically.
+     });
 
      return legend;
-   }
+  }
 
   // --- Final Chart Configuration (Unchanged) ---
   function configureChart(chart, root, yAxis, xAxis, label) { /* ... (same as before) ... */
@@ -275,28 +195,21 @@ am5.ready(function() {
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
-  // *** NEW: Set initial visibility based on Preferences > Defaults ***
-  // Primary line is always visible initially, its fill matches
+  // *** MODIFIED: Set initial visibility - Main line visible, others hidden ***
+  // Show the main line and its fill by default
   primarySeriesRefs.line.show(0);
   primarySeriesRefs.fill.show(0);
 
-  // Cumulative Bars - Use preference or default
-  if (getInitialVisibility(primarySeriesRefs.bars.get("name"))) {
-    primarySeriesRefs.bars.show(0);
-  } else {
-    primarySeriesRefs.bars.hide(0);
-  }
+  // Hide the cumulative bars by default
+  primarySeriesRefs.bars.hide(0);
 
-  // Overlay Lines - Use preference or default for each
+  // Hide all overlay lines by default
   overlaySeries.forEach(series => {
-    if (getInitialVisibility(series.get("name"))) {
-        series.show(0);
-    } else {
-        series.hide(0);
-    }
+      series.hide(0); // Hide immediately without animation
   });
 
-  // Create the legend AFTER creating series but BEFORE final configuration
+  // Create the legend AFTER creating series and setting initial visibility.
+  // Pass all series so hidden ones still appear in the legend.
   createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
 
   // Configure remaining chart elements
