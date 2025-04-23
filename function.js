@@ -100,7 +100,7 @@ am5.ready(function() {
 
 
   // --- Primary Series Creation (Value2 Bars toggleable) ---
-  // *** MODIFIED: Use direct hex strings for labelTextColor ***
+  // *** Use direct hex strings for labelTextColor ***
   function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) {
     // console.log("Creating primary series (Line, AreaFill, Value2Bars)...");
     let lineSeries, fillSeries, value2Series;
@@ -159,7 +159,7 @@ am5.ready(function() {
 
 
   // --- Overlay Series Creation ---
-  // *** MODIFIED: Use direct hex strings for labelTextColor conditionally ***
+  // *** Use direct hex strings for labelTextColor conditionally ***
   function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) {
      let overlaySeriesList = []; if (!overlayData) { /* console.log("No valid overlay data provided."); */ return overlaySeriesList; }
      // console.log("Creating overlay series...");
@@ -200,7 +200,7 @@ am5.ready(function() {
    }
 
   // --- Legend Creation & Linking ---
-  // *** MODIFIED: Use direct hex string for hint label fill ***
+  // *** MODIFIED: Use GridLayout for wrapping ***
   function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) { /* console.log("Skipping legend (no series)."); */ return null; }
@@ -210,7 +210,10 @@ am5.ready(function() {
      var legend = chart.children.push(am5.Legend.new(root, {
          centerX: am5.p50,
          x: am5.p50,
-         layout: root.horizontalLayout, // Use horizontal layout
+         // *** Use GridLayout with maxColumns for wrapping ***
+         layout: am5.GridLayout.new(root, {
+             maxColumns: 4 // Adjust this number as needed
+         }),
          marginTop: 15,
          marginBottom: 15
      }));
@@ -219,17 +222,20 @@ am5.ready(function() {
      let hintLabel = am5.Label.new(root, {
          text: "(Click legend items to toggle visibility)",
          fontSize: "0.75em",
-         fill: am5.color("#888888"), // *** Use direct hex ***
+         fill: am5.color("#888888"), // Use direct hex
          centerX: am5.p50,
          x: am5.p50,
-         paddingTop: 5 // Initial padding
+         paddingTop: 5 // Initial padding, will be adjusted
      });
      chart.children.push(hintLabel);
 
-     // Adjust hint label position after legend is measured
+     // Adjust hint label position after legend is measured (important for multi-line)
      legend.events.on("boundschanged", function(ev) {
         let legendHeight = ev.target.height();
+        // console.log("Legend bounds changed, new height:", legendHeight);
+        // Position hint label below the potentially multi-line legend
         hintLabel.set("paddingTop", legendHeight + 5);
+        hintLabel.set("dy", legendHeight + 5); // Alternative positioning, might work better depending on container
      });
 
 
@@ -271,7 +277,8 @@ am5.ready(function() {
          centerX: am5.percent(50),
          paddingTop: 10
      }));
-     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 50 }));
+     // Increased marginBottom for scrollbar to accommodate potentially taller legend + hint
+     chart.set("scrollbarX", am5.Scrollbar.new(root, { orientation: "horizontal", marginBottom: 65 })); // Increased from 50
      chart.appear(1000, 100);
      // console.log("Chart configured.");
   }
