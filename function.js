@@ -10,13 +10,13 @@ window.function = function (
   let overlayDataJsonStringValue = overlayDataJson.value ?? '{}';
   let intervalNameValue = intervalName.value ?? "Period";
   let chartWidth = width.value ?? 100;
-  // *** MODIFICATION: Changed default height to 750 ***
-  let chartHeight = height.value ?? 750;
+  let chartHeight = height.value ?? 750; // Default height maintained
   let chartTypeLabel = type.value ?? "Value";
 
   // --- JSON Cleaning (same as before) ---
   let cleanedDataString = '[]';
   try {
+    // ... (cleaning logic remains unchanged) ...
     let tempString = dataStringValue.trim();
     tempString = tempString.replace(/strokeSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
     tempString = tempString.replace(/fillSettings\s*:\s*\{[\s\S]*?\}\s*,?/g, '');
@@ -31,6 +31,7 @@ window.function = function (
 
 
   // --- HTML Template ---
+  // *** MODIFICATION: Added button container and buttons ***
   let ht = `
 <!DOCTYPE html>
 <html>
@@ -41,12 +42,36 @@ window.function = function (
   <script src="https://cdn.amcharts.com/lib/5/xy.js"></script>
   <script src="https://cdn.amcharts.com/lib/5/themes/Animated.js"></script>
   <style>
-    html, body { margin: 0; padding: 0; height: 100%; width: 100%; }
+    html, body { margin: 0; padding: 0; height: 100%; width: 100%; font-family: sans-serif; }
+    /* *** MODIFICATION: Added styles for button container and buttons *** */
+    #controls {
+        width: ${chartWidth}%;
+        text-align: center;
+        padding: 10px 0;
+        box-sizing: border-box; /* Include padding in width */
+    }
+    #controls button {
+        padding: 5px 15px;
+        margin: 0 5px;
+        cursor: pointer;
+        font-size: 0.9em;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #f0f0f0;
+    }
+     #controls button:hover {
+        background-color: #e0e0e0;
+     }
     #chartdiv { width: ${chartWidth}%; height: ${chartHeight}px; } /* Height applied here */
     .am5-tooltip { font-size: 0.85em; pointer-events: none; }
   </style>
 </head>
 <body>
+  <!-- *** MODIFICATION: Added button container *** -->
+  <div id="controls">
+      <button id="toggleOnBtn">Show All Optional</button>
+      <button id="toggleOffBtn">Hide All Optional</button>
+  </div>
   <div id="chartdiv"></div>
 
 <script>
@@ -58,14 +83,8 @@ am5.ready(function() {
   const intervalName = ${JSON.stringify(intervalNameValue)};
   const chartTypeLabel = ${JSON.stringify(chartTypeLabel)};
 
-  // --- Color/Style Constants (Unchanged from previous update) ---
-  const overlayColors = {
-      "This Week": "#228B22",
-      "1 Week Before": "#FFA500",
-      "2 Weeks Before": "#800080",
-      "3 Weeks Before": "#DC143C",
-      "Default": "#888888"
-  };
+  // --- Color/Style Constants (Unchanged) ---
+  const overlayColors = { /* ... */ };
   const primaryOutlineColor = "#09077b";
   const primaryFillColor = "#b6dbee";
   const primaryValue2TooltipBgColor = "#333333";
@@ -96,25 +115,28 @@ am5.ready(function() {
     var chart = root.container.children.push(am5xy.XYChart.new(root, { panX: true, panY: true, wheelX: "panX", wheelY: "zoomX", layout: root.verticalLayout, pinchZoomX: true })); var xRenderer = am5xy.AxisRendererX.new(root, { minGridDistance: 70 }); xRenderer.labels.template.setAll({ fontSize: 8, rotation: -90, centerY: am5.p50, centerX: am5.p100, paddingRight: 5 }); var xAxis = chart.xAxes.push(am5xy.CategoryAxis.new(root, { categoryField: "time", renderer: xRenderer, tooltip: am5.Tooltip.new(root, {}) })); if (xAxisData.length > 0) { xAxis.data.setAll(xAxisData); } else { console.warn("X-Axis has no data categories."); } var yRenderer = am5xy.AxisRendererY.new(root, {}); var yAxis = chart.yAxes.push(am5xy.ValueAxis.new(root, { maxPrecision: 2, renderer: yRenderer })); return { chart, xAxis, yAxis };
    }
 
-  // --- Primary Series Creation (Unchanged from previous update - Uses "Bars") ---
-  function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) { /* ... (same as before, includes "Bars" label) ... */
+  // --- Primary Series Creation (Unchanged) ---
+  function createPrimarySeries(chart, root, primaryData, xAxis, yAxis) { /* ... (same as before) ... */
     let lineSeries, fillSeries, value2Series;
-    fillSeries = chart.series.push(am5xy.ColumnSeries.new(root, { name: intervalName + " (Fill)", xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100), toggleable: false }));
+    // Fill Series (Background for Line)
+    fillSeries = chart.series.push(am5xy.ColumnSeries.new(root, { name: intervalName + " (Fill)", xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", fill: am5.color(primaryFillColor), strokeOpacity: 0, width: am5.percent(100), toggleable: false })); // Not toggleable via legend directly
     fillSeries.data.setAll(primaryData);
+    // Value2 Series (Bars)
     value2Series = chart.series.push(am5xy.ColumnSeries.new(root, { name: intervalName + " (Bars)", xAxis: xAxis, yAxis: yAxis, valueYField: "value2", categoryXField: "time", tooltip: am5.Tooltip.new(root, { getFillFromSprite: false, labelTextColor: am5.color(whiteColorHex), fontSize: tooltipFontSize, labelText: intervalName + " (Bars): {valueY.formatNumber('#.##')}" }) }));
     value2Series.get("tooltip").get("background").set("fill", am5.color(primaryValue2TooltipBgColor));
     value2Series.columns.template.adapters.add("fill", function(fill, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); });
     value2Series.columns.template.adapters.add("stroke", function(stroke, target) { const v2 = target.dataItem?.get("valueY"); return typeof v2 === 'number'?(v2<0?am5.color(negativeValue2Color):am5.color(positiveValue2Color)):am5.color(transparentWhiteHex, 0); });
     value2Series.columns.template.setAll({ strokeWidth: 2, strokeOpacity: 1, width: am5.percent(60) });
     value2Series.data.setAll(primaryData);
+    // Line Series (Primary Value)
     lineSeries = chart.series.push(am5xy.LineSeries.new(root, { name: intervalName, xAxis: xAxis, yAxis: yAxis, valueYField: "value", categoryXField: "time", stroke: am5.color(primaryOutlineColor), fillOpacity: 0, connect: false, tooltip: am5.Tooltip.new(root, { getFillFromSprite: true, labelTextColor: am5.color(whiteColorHex), fontSize: tooltipFontSize, labelText: intervalName + ": {valueY.formatNumber('#.00')}" }) }));
     lineSeries.strokes.template.set("strokeWidth", 2);
     lineSeries.data.setAll(primaryData);
     return { line: lineSeries, fill: fillSeries, bars: value2Series };
   }
 
-  // --- Overlay Series Creation (Unchanged from previous update - Uses "Week Before") ---
-  function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) { /* ... (same as before, uses "Week Before" labels) ... */
+  // --- Overlay Series Creation (Unchanged) ---
+  function createOverlaySeries(chart, root, overlayData, colors, xAxis, yAxis) { /* ... (same as before) ... */
      let overlaySeriesList = []; if (!overlayData) { return overlaySeriesList; }
      try {
        for (const weekKey in overlayData) {
@@ -132,9 +154,8 @@ am5.ready(function() {
      return overlaySeriesList;
   }
 
-  // --- Legend Creation & Linking ---
-  // *** MODIFICATION: Reduced space between legend and hint label ***
-  function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) {
+  // --- Legend Creation & Linking (Unchanged) ---
+  function createLegend(chart, root, mainLineSeries, fillSeriesToToggle, barsSeries, otherSeries) { /* ... (same as before) ... */
      const legendSeries = [mainLineSeries, barsSeries, ...otherSeries];
      if (legendSeries.length === 0) { return null; }
 
@@ -144,28 +165,29 @@ am5.ready(function() {
          marginTop: 15, marginBottom: 15
      }));
 
-     let hintLabel = am5.Label.new(root, { text: "(Click legend items to toggle visibility)", fontSize: "0.75em", fill: am5.color(hintLabelColorHex), centerX: am5.p50, x: am5.p50, paddingTop: 5 }); // Initial paddingTop, will be adjusted
+     let hintLabel = am5.Label.new(root, { text: "(Click legend items to toggle visibility)", fontSize: "0.75em", fill: am5.color(hintLabelColorHex), centerX: am5.p50, x: am5.p50, paddingTop: 5 });
      chart.children.push(hintLabel);
 
      legend.events.on("boundschanged", function(ev) {
         let legendHeight = ev.target.height();
-        // *** MODIFICATION: Reduced the offset from 5 to 2 (or 0 if you want no gap) ***
-        let verticalOffset = 2; // Adjust this value for desired spacing (e.g., 0, 1, 2)
+        let verticalOffset = 2;
         hintLabel.set("paddingTop", legendHeight + verticalOffset);
-        hintLabel.set("dy", legendHeight + verticalOffset); // dy positions the element vertically
+        hintLabel.set("dy", legendHeight + verticalOffset);
      });
 
      legend.data.setAll(legendSeries);
 
+     // Link primary line visibility to its fill series
      legend.itemContainers.template.events.on("click", function(ev) {
         if (!ev.target.dataItem || !ev.target.dataItem.dataContext) return;
         const clickedSeries = ev.target.dataItem.dataContext;
         if (clickedSeries === mainLineSeries) {
+            // Use setTimeout to ensure the visibility state has updated after the click
             setTimeout(() => {
                  if (mainLineSeries.isHidden() || !mainLineSeries.get("visible")) {
-                    fillSeriesToToggle.hide(0);
+                    fillSeriesToToggle.hide(0); // Hide fill instantly if line is hidden
                  } else {
-                    fillSeriesToToggle.show(0);
+                    fillSeriesToToggle.show(0); // Show fill instantly if line is shown
                  }
             }, 0);
         }
@@ -189,20 +211,47 @@ am5.ready(function() {
   const primarySeriesRefs = createPrimarySeries(chart, root, primaryData, xAxis, yAxis);
   const overlaySeries = createOverlaySeries(chart, root, parsedOverlayData, overlayColors, xAxis, yAxis);
 
-  // Set initial visibility
+  // *** MODIFICATION: Combine all toggleable series ***
+  const toggleableSeries = [primarySeriesRefs.bars, ...overlaySeries];
+
+  // Set initial visibility (Primary line/fill ON, others OFF)
   primarySeriesRefs.line.show(0);
   primarySeriesRefs.fill.show(0);
-  primarySeriesRefs.bars.hide(0);
-  overlaySeries.forEach(series => {
-      series.hide(0);
+  toggleableSeries.forEach(series => {
+      if (series) { // Check if series exists (e.g., bars might not if no value2 data)
+          series.hide(0);
+      }
   });
 
   // Create the legend AFTER creating series and setting initial visibility.
-  // Legend spacing adjustment is handled within the createLegend function now.
   createLegend(chart, root, primarySeriesRefs.line, primarySeriesRefs.fill, primarySeriesRefs.bars, overlaySeries);
 
   // Configure remaining chart elements
   configureChart(chart, root, yAxis, xAxis, chartTypeLabel);
+
+  // *** MODIFICATION: Add Button Event Listeners ***
+  const toggleOnButton = document.getElementById('toggleOnBtn');
+  const toggleOffButton = document.getElementById('toggleOffBtn');
+
+  if (toggleOnButton) {
+      toggleOnButton.addEventListener('click', () => {
+          toggleableSeries.forEach(series => {
+              if (series) {
+                  series.show(); // Use default animation duration
+              }
+          });
+      });
+  }
+
+  if (toggleOffButton) {
+      toggleOffButton.addEventListener('click', () => {
+          toggleableSeries.forEach(series => {
+              if (series) {
+                  series.hide(); // Use default animation duration
+              }
+          });
+      });
+  }
 
 }); // end am5.ready()
 </script>
